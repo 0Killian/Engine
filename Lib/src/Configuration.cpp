@@ -5,7 +5,7 @@
 
 namespace NGN
 {
-    void Configuration::ParseArgs(const List<String>& args)
+    Configuration::Configuration(const List<String>& args)
     {
         enum class ParseState
         {

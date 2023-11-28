@@ -6,6 +6,7 @@
 #include <string>
 
 #include "List.h"
+#include "Logger.h"
 
 namespace NGN
 {
@@ -61,9 +62,9 @@ namespace NGN
         std::string m_Data;
     };
 
-    inline std::ostream& operator<<(std::ostream& os, const String& string)
+    inline Logger::LogChannel& operator<<(Logger::LogChannel& channel, const String& string)
     {
-        os << std::string(string.GetData());
-        return os;
+        channel << string.GetData();
+        return channel;
     }
 }

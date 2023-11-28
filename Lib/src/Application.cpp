@@ -15,14 +15,12 @@ namespace NGN
     };
 
     Application::Application(const List<String>& args)
+        : m_Inner(new ApplicationInner {
+            Configuration(args) // TODO: Read from config file if it exists
+        }),
+        m_Logger(static_cast<ApplicationInner*>(m_Inner)->m_Configuration.log_level)
     {
-        std::cout << "Application started. Args: " << args << std::endl;
-        const auto inner = new ApplicationInner();
-        m_Inner = inner;
-        inner->m_Configuration.ParseArgs(args);
-        // TODO: Read from config file if it exists
-
-        std::cout << "Configuration: " << inner->m_Configuration << std::endl;
+        m_Logger.Info() << "Application created with configuration: " << static_cast<ApplicationInner*>(m_Inner)->m_Configuration << Logger::EndLine;
     }
 
     Application::~Application()
@@ -33,6 +31,6 @@ namespace NGN
 
     void Application::Run()
     {
-        std::cout << "Hello, World!" << std::endl;
+        m_Logger.Info() << "Application running" << Logger::EndLine;
     }
 }

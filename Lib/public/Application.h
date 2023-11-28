@@ -2,8 +2,8 @@
 // Created by Killian on 28/11/2023.
 //
 #pragma once
-#include <memory>
 
+#include "Logger.h"
 #include "Containers/String.h"
 
 namespace NGN
@@ -18,5 +18,8 @@ namespace NGN
 
     private:
         void* m_Inner = nullptr;
+
+    protected:
+        Logger m_Logger;
     };
 }

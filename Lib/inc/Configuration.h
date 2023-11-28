@@ -4,7 +4,7 @@
 #pragma once
 
 #include "Containers/String.h"
-#include "Logger.h"
+#include "../public/Logger.h"
 
 namespace NGN
 {
@@ -18,16 +18,16 @@ namespace NGN
     class Configuration
     {
     public:
-        void ParseArgs(const List<String>& args);
+        explicit Configuration(const List<String>& args);
 
         static_assert(ConfigValue<LogLevel>);
 
         LogLevel log_level = LogLevel::Info;
     };
 
-    inline std::ostream& operator<<(std::ostream& os, const Configuration& config)
+    inline Logger::LogChannel& operator<<(Logger::LogChannel& channel, const Configuration& config)
     {
-        os << String("Configuration: { log_level: ") << config.log_level.ToConfigString() << String(" }");
-        return os;
+        channel << "Configuration: { log_level: " << config.log_level.ToConfigString() << " }";
+        return channel;
     }
 }

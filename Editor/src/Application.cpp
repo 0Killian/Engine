@@ -10,7 +10,7 @@ public:
     explicit Editor(const NGN::List<NGN::String>& args)
         : Application(args)
     {
-        std::cout << "Editor started" << std::endl;
+        m_Logger.Info() << "Editor Created" << NGN::Logger::EndLine;
     }
 };
 
