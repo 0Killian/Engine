@@ -19,7 +19,7 @@
 #define NGN_API
 #endif
 
-#include "Test.h"
 #include "EntryPoint.h"
+#include "Application.h"
 
 #endif

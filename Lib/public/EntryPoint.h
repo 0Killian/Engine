@@ -4,17 +4,31 @@
 #pragma once
 
 #include <iostream>
-#include "Test.h"
 
 #ifdef _WIN32
 #include <Windows.h>
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+#define NGN_ENTRY_POINT(ApplicationClass) \
+    int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) \
+    { \
+        try { \
+            /* TODO: Parse arguments */ \
+            ApplicationClass app = ApplicationClass(); \
+            app.Run(); \
+        } catch (const std::exception& e) { \
+            std::cerr << e.what() << std::endl; \
+        } \
+    }
 #else
-int main(int argc, char** argv)
+#define NGN_ENTRY_POINT(ApplicationClass) \
+    int main(int argc, char** argv) \
+    { \
+        try { \
+            /* TODO: Parse arguments */ \
+            ApplicationClass app = ApplicationClass(); \
+            app.Run(); \
+        } catch (const std::exception& e) { \
+            std::cerr << e.what() << std::endl; \
+        } \
+    }
 #endif
-{
-    std::cout << "Hello World: " << Test() << std::endl;
-
-    return 0;
-}
