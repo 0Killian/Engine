@@ -7,9 +7,9 @@
 
 namespace NGN
 {
-    Application::Application()
+    Application::Application(const List<String>& args)
     {
-        std::cout << "Application started" << std::endl;
+        std::cout << "Application started. Args: " << args << std::endl;
     }
 
     void Application::Run()

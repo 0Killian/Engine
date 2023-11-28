@@ -7,7 +7,8 @@
 class Editor final : public NGN::Application
 {
 public:
-    Editor()
+    explicit Editor(const NGN::List<NGN::String>& args)
+        : Application(args)
     {
         std::cout << "Editor started" << std::endl;
     }

@@ -7,7 +7,8 @@
 class Sandbox final : public NGN::Application
 {
 public:
-    Sandbox()
+    explicit Sandbox(const NGN::List<NGN::String>& args)
+        : Application(args)
     {
         std::cout << "Sandbox started" << std::endl;
     }
