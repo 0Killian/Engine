@@ -23,6 +23,8 @@
         } catch (const std::exception& e) { \
             std::cerr << e.what() << std::endl; \
         } \
+        \
+        return 0; \
     }
 #else
 #define NGN_ENTRY_POINT(ApplicationClass) \
@@ -38,5 +40,7 @@
         } catch (const std::exception& e) { \
             std::cerr << e.what() << std::endl; \
         } \
+        \
+        return 0; \
     }
 #endif

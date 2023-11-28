@@ -17,7 +17,7 @@ namespace NGN
             : m_Data(string)
         {}
 
-        List<String> Split(const char* delimiter)
+        List<String> Split(const char* delimiter) const
         {
             List<String> result;
 
@@ -41,6 +41,21 @@ namespace NGN
         }
 
         [[nodiscard]] const char* GetData() const { return m_Data.c_str(); }
+
+        bool operator==(const String& other) const
+        {
+            return m_Data == other.m_Data;
+        }
+
+        bool operator==(const char* other) const
+        {
+            return m_Data == other;
+        }
+
+        [[nodiscard]] bool StartsWith(const char* other) const
+        {
+            return m_Data.find(other) == 0;
+        }
 
     private:
         std::string m_Data;

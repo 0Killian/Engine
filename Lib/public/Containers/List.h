@@ -29,6 +29,12 @@ namespace NGN
         const T& operator[](size_t index) const { return m_Data[index]; }
         T& operator[](size_t index) { return m_Data[index]; }
 
+        auto begin() const { return m_Data.cbegin(); }
+        auto end() const { return m_Data.cend(); }
+
+        auto begin() { return m_Data.begin(); }
+        auto end() { return m_Data.end(); }
+
     private:
         std::vector<T> m_Data;
     };
