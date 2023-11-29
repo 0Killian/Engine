@@ -19,9 +19,18 @@ namespace NGN
             : m_Data(data, data + size)
         {}
 
+        List(std::initializer_list<T> list)
+            : m_Data(list)
+        {}
+
         void PushBack(const T& value)
         {
             m_Data.push_back(value);
+        }
+
+        void Erase(size_t index)
+        {
+            m_Data.erase(m_Data.begin() + index);
         }
 
         [[nodiscard]] size_t Size() const { return m_Data.size(); }
