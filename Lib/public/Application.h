@@ -3,6 +3,7 @@
 //
 #pragma once
 
+#include "Events.h"
 #include "Logger.h"
 #include "Containers/String.h"
 
@@ -16,10 +17,13 @@ namespace NGN
 
         void Run();
 
+        virtual void OnUpdate() = 0;
+
     private:
         void* m_Inner = nullptr;
 
     protected:
         Logger m_Logger;
+        std::shared_ptr<EventManager> m_EventManager = std::make_shared<EventManager>();
     };
 }

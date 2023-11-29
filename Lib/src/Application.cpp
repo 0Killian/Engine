@@ -4,6 +4,7 @@
 #include "Application.h"
 
 #include <iostream>
+#include <thread>
 
 #include "Configuration.h"
 
@@ -32,5 +33,10 @@ namespace NGN
     void Application::Run()
     {
         m_Logger.Info() << "Application running" << Logger::EndLine;
+
+        while(true)
+        {
+            OnUpdate();
+        }
     }
 }
