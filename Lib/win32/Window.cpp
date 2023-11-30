@@ -50,7 +50,7 @@ namespace NGN
                 auto height = HIWORD(lp);
 
                 EventData data = {
-                    .WindowMoved = {
+                    .WindowSize = {
                         .ID =  m_Id,
                         .Width = width,
                         .Height = height
@@ -80,6 +80,24 @@ namespace NGN
                 };
 
                 m_EventManager->TriggerEvent(EventType::WINDOW_LOST_FOCUS, data);
+
+                return 0;
+            }
+
+            case WM_MOVE:
+            {
+                auto x = LOWORD(lp);
+                auto y = HIWORD(lp);
+
+                EventData data = {
+                    .WindowMoved = {
+                        .ID =  m_Id,
+                        .X = x,
+                        .Y = y
+                    }
+                };
+
+                m_EventManager->TriggerEvent(EventType::WINDOW_MOVED, data);
 
                 return 0;
             }

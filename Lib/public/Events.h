@@ -17,7 +17,7 @@ namespace NGN
         WINDOW_RESIZE,
         WINDOW_FOCUS,
         WINDOW_LOST_FOCUS,
-        //WINDOW_MOVED,
+        WINDOW_MOVED,
 
         // Key
         //KEY_PRESSED,
@@ -42,11 +42,18 @@ namespace NGN
 
         uint64_t WindowID;
 
-        struct WindowMoved
+        struct WindowSize
         {
             uint64_t ID;
             uint32_t Width;
             uint32_t Height;
+        } WindowSize;
+
+        struct WindowMoved
+        {
+            uint64_t ID;
+            int32_t X;
+            int32_t Y;
         } WindowMoved;
     };
 

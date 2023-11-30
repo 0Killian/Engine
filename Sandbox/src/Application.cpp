@@ -19,7 +19,8 @@ public:
             NGN::EventType::WINDOW_CLOSE,
             NGN::EventType::WINDOW_RESIZE,
             NGN::EventType::WINDOW_FOCUS,
-            NGN::EventType::WINDOW_LOST_FOCUS
+            NGN::EventType::WINDOW_LOST_FOCUS,
+            NGN::EventType::WINDOW_MOVED
         }, std::move(eventManager))
         , m_Window1(window1)
         , m_Window2(window2)
@@ -36,8 +37,10 @@ public:
                 m_Logger.Info() << "Window 1 Focused" << NGN::Logger::EndLine;
             else if(type == NGN::EventType::WINDOW_LOST_FOCUS)
                 m_Logger.Info() << "Window 1 Lost Focus" << NGN::Logger::EndLine;
+            else if(type == NGN::EventType::WINDOW_MOVED)
+                m_Logger.Info() << "Window 1 Moved to " << data.WindowMoved.X << "x" << data.WindowMoved.Y << NGN::Logger::EndLine;
             else
-                m_Logger.Info() << "Window 1 Resized to " << data.WindowMoved.Width << "x" << data.WindowMoved.Height << NGN::Logger::EndLine;
+                m_Logger.Info() << "Window 1 Resized to " << data.WindowSize.Width << "x" << data.WindowSize.Height << NGN::Logger::EndLine;
         }
         else if(m_Window2.has_value() && data.WindowID == m_Window2->GetID())
         {
@@ -47,8 +50,10 @@ public:
                 m_Logger.Info() << "Window 2 Focused" << NGN::Logger::EndLine;
             else if(type == NGN::EventType::WINDOW_LOST_FOCUS)
                 m_Logger.Info() << "Window 2 Lost Focus" << NGN::Logger::EndLine;
+            else if(type == NGN::EventType::WINDOW_MOVED)
+                m_Logger.Info() << "Window 2 Moved to " << data.WindowMoved.X << "x" << data.WindowMoved.Y << NGN::Logger::EndLine;
             else
-                m_Logger.Info() << "Window 2 Resized to " << data.WindowMoved.Width << "x" << data.WindowMoved.Height << NGN::Logger::EndLine;
+                m_Logger.Info() << "Window 2 Resized to " << data.WindowSize.Width << "x" << data.WindowSize.Height << NGN::Logger::EndLine;
         }
 
         return false;
