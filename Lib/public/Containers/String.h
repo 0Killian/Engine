@@ -14,7 +14,7 @@ namespace NGN
     {
         // TODO: Implement own string class
     public:
-        explicit String(const char* string)
+        String(const char* string)
             : m_Data(string)
         {}
 
