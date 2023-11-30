@@ -14,23 +14,31 @@ class Sandbox;
 class WindowListener final : public NGN::EventListener
 {
 public:
-    WindowListener(std::shared_ptr<NGN::EventManager> eventManager, std::optional<NGN::Window>& window1, std::optional<NGN::Window>& window2)
+    WindowListener(std::shared_ptr<NGN::EventManager> eventManager, std::optional<NGN::Window>& window1, std::optional<NGN::Window>& window2, NGN::Logger& logger)
         : EventListener({
             NGN::EventType::WINDOW_CLOSE,
+            NGN::EventType::WINDOW_RESIZE
         }, std::move(eventManager))
         , m_Window1(window1)
         , m_Window2(window2)
+        , m_Logger(logger)
     {}
 
     bool OnEvent(NGN::EventType type, NGN::EventData data) override
     {
         if(m_Window1.has_value() && data.WindowID == m_Window1->GetID())
         {
-            m_Window1.reset();
+            if(type == NGN::EventType::WINDOW_CLOSE)
+                m_Window1.reset();
+            else
+                m_Logger.Info() << "Window 1 Resized to " << data.WindowMoved.Width << "x" << data.WindowMoved.Height << NGN::Logger::EndLine;
         }
         else if(m_Window2.has_value() && data.WindowID == m_Window2->GetID())
         {
-            m_Window2.reset();
+            if(type == NGN::EventType::WINDOW_CLOSE)
+                m_Window2.reset();
+            else
+                m_Logger.Info() << "Window 2 Resized to " << data.WindowMoved.Width << "x" << data.WindowMoved.Height << NGN::Logger::EndLine;
         }
 
         return false;
@@ -39,6 +47,7 @@ public:
 private:
     std::optional<NGN::Window>& m_Window1;
     std::optional<NGN::Window>& m_Window2;
+    NGN::Logger& m_Logger;
 };
 
 class Sandbox final : public NGN::Application
@@ -48,7 +57,7 @@ public:
         : Application(args)
         , m_Window1(NGN::Window(NGN::Window::Specification { .Title = "Window 1", .Width = 800, .Height = 600 }, m_EventManager))
         , m_Window2(NGN::Window(NGN::Window::Specification { .Title = "Window 2", .Width = 400, .Height = 600 }, m_EventManager))
-        , m_WindowListener(m_EventManager, m_Window1, m_Window2)
+        , m_WindowListener(m_EventManager, m_Window1, m_Window2, m_Logger)
     {
         m_Logger.Info() << "Sandbox Created" << NGN::Logger::EndLine;
     }

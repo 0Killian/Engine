@@ -11,6 +11,11 @@ namespace Windows
 {
 #include <Windows.h>
 #undef RegisterClass
+#undef LOWORD
+#undef HIWORD
+
+#define LOWORD(l) ((Windows::WORD) (((Windows::DWORD_PTR) (l)) & 0xffff))
+#define HIWORD(l) ((Windows::WORD) ((((Windows::DWORD_PTR) (l)) >> 16) & 0xffff))
 }
 
 namespace NGN
@@ -35,6 +40,24 @@ namespace NGN
                 };
 
                 m_EventManager->TriggerEvent(EventType::WINDOW_CLOSE, data);
+
+                return 0;
+            }
+
+            case WM_SIZE:
+            {
+                auto width = LOWORD(lp);
+                auto height = HIWORD(lp);
+
+                EventData data = {
+                    .WindowMoved = {
+                        .ID =  m_Id,
+                        .Width = width,
+                        .Height = height
+                    }
+                };
+
+                m_EventManager->TriggerEvent(EventType::WINDOW_RESIZE, data);
 
                 return 0;
             }

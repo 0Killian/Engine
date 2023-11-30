@@ -14,7 +14,7 @@ namespace NGN
     {
         // Window
         WINDOW_CLOSE,
-        //WINDOW_RESIZE,
+        WINDOW_RESIZE,
         //WINDOW_FOCUS,
         //WINDOW_LOST_FOCUS,
         //WINDOW_MOVED,
@@ -41,6 +41,13 @@ namespace NGN
         void* Debug;
 
         uint64_t WindowID;
+
+        struct WindowMoved
+        {
+            uint64_t ID;
+            uint32_t Width;
+            uint32_t Height;
+        } WindowMoved;
     };
 
     class EventManager;
