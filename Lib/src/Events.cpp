@@ -3,11 +3,13 @@
 //
 #include "Events.h"
 
+#include "Logger.h"
 #include "Containers/HashMap.h"
 
 namespace NGN
 {
-    EventManager::EventManager()
+    EventManager::EventManager(Logger& logger)
+        : m_Logger(logger)
     {
         for(auto type = static_cast<EventType>(0); type < EventType::_COUNT; type = static_cast<EventType>(static_cast<int>(type) + 1))
         {
@@ -81,6 +83,8 @@ namespace NGN
 
     void EventManager::TriggerEvent(EventType type, EventData data)
     {
+        m_Logger.Debug() << "Triggering event " << static_cast<int>(type) << Logger::EndLine;
+
         for(size_t id : m_ListenerMap[type])
         {
             if(m_Listeners[id] != nullptr)

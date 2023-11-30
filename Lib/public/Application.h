@@ -21,12 +21,15 @@ namespace NGN
 
         virtual void OnUpdate() = 0;
 
+        void Exit();
+
     private:
         void* m_Inner = nullptr;
 
     protected:
         Logger m_Logger;
-        std::shared_ptr<EventManager> m_EventManager = std::make_shared<EventManager>();
+        std::shared_ptr<EventManager> m_EventManager = std::make_shared<EventManager>(m_Logger);
         Platform m_Platform;
+        bool m_ShouldExit = false;
     };
 }

@@ -4,6 +4,7 @@
 #pragma once
 #include <memory>
 
+#include "Logger.h"
 #include "Containers/HashMap.h"
 #include "Containers/List.h"
 
@@ -12,7 +13,7 @@ namespace NGN
     enum class EventType
     {
         // Window
-        //WINDOW_CLOSE,
+        WINDOW_CLOSE,
         //WINDOW_RESIZE,
         //WINDOW_FOCUS,
         //WINDOW_LOST_FOCUS,
@@ -38,6 +39,8 @@ namespace NGN
     union EventData
     {
         void* Debug;
+
+        uint64_t WindowID;
     };
 
     class EventManager;
@@ -64,7 +67,7 @@ namespace NGN
     class EventManager
     {
     public:
-        EventManager();
+        explicit EventManager(Logger& logger);
 
         void TriggerEvent(EventType type, EventData data);
 
@@ -76,6 +79,7 @@ namespace NGN
         List<EventListener*> m_Listeners;
         HashMap<EventType, List<size_t>> m_ListenerMap;
         ssize_t m_NextFree = -1;
+        Logger& m_Logger;
 
         friend EventListener;
     };

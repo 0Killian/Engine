@@ -3,7 +3,9 @@
 //
 #include "Window.h"
 
-#include <Windows.h>
+#include <Events.h>
+
+#include <utility>
 
 namespace Windows
 {
@@ -14,35 +16,49 @@ namespace Windows
 namespace NGN
 {
     bool s_ClassRegistered = false;
+    uint64_t s_nextId = 0;
 
     struct WindowInner
     {
-        HWND m_Handle;
+        Windows::HWND m_Handle;
+        uint64_t m_Id = s_nextId++;
+        std::shared_ptr<EventManager> m_EventManager;
 
-        LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wp, LPARAM lp)
+        Windows::LRESULT CALLBACK WndProc(Windows::HWND hwnd, Windows::UINT message, Windows::WPARAM wp, Windows::LPARAM lp)
         {
             switch(message)
             {
+            case WM_CLOSE:
+            {
+                EventData data = {
+                    .WindowID =  m_Id,
+                };
+
+                m_EventManager->TriggerEvent(EventType::WINDOW_CLOSE, data);
+
+                return 0;
+            }
+
             default:
                 return DefWindowProcA(hwnd, message, wp, lp);
             }
         }
 
-        static LRESULT CALLBACK WndProcStub(HWND hwnd, UINT message, WPARAM wp, LPARAM lp)
+        static Windows::LRESULT CALLBACK WndProcStub(Windows::HWND hwnd, Windows::UINT message, Windows::WPARAM wp, Windows::LPARAM lp)
         {
             auto window = reinterpret_cast<WindowInner*>(GetWindowLongPtrA(hwnd, GWLP_USERDATA));
             return window->WndProc(hwnd, message, wp, lp);
         }
     };
 
-    LRESULT CALLBACK WndProcSetup(HWND hwnd, UINT message, WPARAM wp, LPARAM lp)
+    Windows::LRESULT CALLBACK WndProcSetup(Windows::HWND hwnd, Windows::UINT message, Windows::WPARAM wp, Windows::LPARAM lp)
     {
         if(message == WM_NCCREATE)
         {
-            auto cs = reinterpret_cast<CREATESTRUCT*>(lp);
-            auto window = reinterpret_cast<WindowInner*>(cs->lpCreateParams);
-            SetWindowLongPtrA(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
-            SetWindowLongPtrA(hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(WindowInner::WndProcStub));
+            auto cs = reinterpret_cast<Windows::CREATESTRUCT*>(lp);
+            auto window = static_cast<WindowInner*>(cs->lpCreateParams);
+            SetWindowLongPtrA(hwnd, GWLP_USERDATA, reinterpret_cast<Windows::LONG_PTR>(window));
+            SetWindowLongPtrA(hwnd, GWLP_WNDPROC, reinterpret_cast<Windows::LONG_PTR>(WindowInner::WndProcStub));
             return window->WndProc(hwnd, message, wp, lp);
         }
 
@@ -51,11 +67,11 @@ namespace NGN
 
     void RegisterClass()
     {
-        auto hInstance = GetModuleHandleA(nullptr);
+        auto hInstance = Windows::GetModuleHandleA(nullptr);
         auto className = "NGNWindowClass";
 
-        auto wndClass = WNDCLASSEXA {
-            .cbSize = sizeof(WNDCLASSEXA),
+        auto wndClass = Windows::WNDCLASSEXA {
+            .cbSize = sizeof(Windows::WNDCLASSEXA),
             .style = CS_OWNDC,
             .lpfnWndProc = WndProcSetup,
             .cbClsExtra = 0,
@@ -77,19 +93,20 @@ namespace NGN
         s_ClassRegistered = true;
     }
 
-    Window::Window(Specification spec)
+    Window::Window(Specification spec, std::shared_ptr<EventManager> manager)
     {
         if(!s_ClassRegistered)
         {
             RegisterClass();
         }
 
-        auto hInstance = GetModuleHandleA(nullptr);
+        auto hInstance = Windows::GetModuleHandleA(nullptr);
         auto className = "NGNWindowClass";
 
         m_Inner = new WindowInner();
+        static_cast<WindowInner*>(m_Inner)->m_EventManager = std::move(manager);
 
-        auto hwnd = CreateWindowExA(
+        auto hwnd = Windows::CreateWindowExA(
             0,
             className,
             spec.Title.GetData(),
@@ -109,28 +126,49 @@ namespace NGN
             throw std::runtime_error("Failed to create window");
         }
 
-        ShowWindow(hwnd, SW_SHOW);
+        Windows::ShowWindow(hwnd, SW_SHOW);
 
         static_cast<WindowInner*>(m_Inner)->m_Handle = hwnd;
+    }
+
+    uint64_t Window::GetID() const
+    {
+        return static_cast<WindowInner*>(m_Inner)->m_Id;
     }
 
     Window::~Window()
     {
         if(m_Inner != nullptr)
         {
-            DestroyWindow(static_cast<WindowInner*>(m_Inner)->m_Handle);
+            Windows::DestroyWindow(static_cast<WindowInner*>(m_Inner)->m_Handle);
             delete static_cast<WindowInner*>(m_Inner);
         }
     }
 
     void Window::PollEvents()
     {
-        MSG msg;
+        Windows::MSG msg;
         while(PeekMessageA(&msg, static_cast<WindowInner*>(m_Inner)->m_Handle, 0, 0, PM_REMOVE))
         {
-            TranslateMessage(&msg);
-            DispatchMessageA(&msg);
+            Windows::TranslateMessage(&msg);
+            Windows::DispatchMessageA(&msg);
         }
     }
 
+    Window::Window(Window&& other) noexcept
+        : m_Inner(other.m_Inner)
+    {
+        other.m_Inner = nullptr;
+    }
+
+    Window& Window::operator=(Window&& other) noexcept
+    {
+        if(this != &other)
+        {
+            m_Inner = other.m_Inner;
+            other.m_Inner = nullptr;
+        }
+
+        return *this;
+    }
 }

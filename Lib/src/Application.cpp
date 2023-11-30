@@ -34,9 +34,15 @@ namespace NGN
     {
         m_Logger.Info() << "Application running" << Logger::EndLine;
 
-        while(true)
+        while(!m_ShouldExit)
         {
             OnUpdate();
         }
     }
+
+    void Application::Exit()
+    {
+        m_ShouldExit = true;
+    }
+
 }

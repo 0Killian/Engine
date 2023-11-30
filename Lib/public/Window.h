@@ -3,6 +3,7 @@
 //
 #pragma once
 #include <cstdint>
+#include <Events.h>
 
 #include "Platform.h"
 #include "Containers/String.h"
@@ -19,10 +20,17 @@ namespace NGN
             uint32_t Height;
         };
 
-        explicit Window(Specification spec);
+        explicit Window(Specification spec, std::shared_ptr<EventManager>);
         ~Window();
 
+        Window(Window&&) noexcept;
+        Window& operator=(Window&&) noexcept;
+
+        Window(Window&) = delete;
+        Window& operator=(Window&) = delete;
+
         void PollEvents();
+        [[nodiscard]] uint64_t GetID() const;
 
     private:
         void* m_Inner = nullptr;
