@@ -62,6 +62,28 @@ namespace NGN
                 return 0;
             }
 
+            case WM_SETFOCUS:
+            {
+                EventData data = {
+                    .WindowID =  m_Id,
+                };
+
+                m_EventManager->TriggerEvent(EventType::WINDOW_FOCUS, data);
+
+                return 0;
+            }
+
+            case WM_KILLFOCUS:
+            {
+                EventData data = {
+                    .WindowID =  m_Id,
+                };
+
+                m_EventManager->TriggerEvent(EventType::WINDOW_LOST_FOCUS, data);
+
+                return 0;
+            }
+
             default:
                 return DefWindowProcA(hwnd, message, wp, lp);
             }

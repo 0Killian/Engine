@@ -15,8 +15,8 @@ namespace NGN
         // Window
         WINDOW_CLOSE,
         WINDOW_RESIZE,
-        //WINDOW_FOCUS,
-        //WINDOW_LOST_FOCUS,
+        WINDOW_FOCUS,
+        WINDOW_LOST_FOCUS,
         //WINDOW_MOVED,
 
         // Key
