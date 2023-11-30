@@ -3,6 +3,8 @@
 //
 #pragma once
 
+#include <Platform.h>
+
 #include "Events.h"
 #include "Logger.h"
 #include "Containers/String.h"
@@ -25,5 +27,6 @@ namespace NGN
     protected:
         Logger m_Logger;
         std::shared_ptr<EventManager> m_EventManager = std::make_shared<EventManager>();
+        Platform m_Platform;
     };
 }

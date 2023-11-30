@@ -2,47 +2,30 @@
 // Created by Killian on 27/11/2023.
 //
 
+#include <Window.h>
+
 #include "Engine.h"
-
-class DebugListener : public NGN::EventListener
-{
-public:
-    DebugListener(const std::shared_ptr<NGN::EventManager>& manager, NGN::Logger& logger)
-        : EventListener({
-            NGN::EventType::DEBUG1,
-            NGN::EventType::DEBUG3
-        }, manager), m_Logger(logger)
-    {}
-
-    bool OnEvent(NGN::EventType type, NGN::EventData data) override
-    {
-        m_Logger.Info() << "Event " << static_cast<int>(type) << "Triggered!" << NGN::Logger::EndLine;
-
-        return true;
-    }
-
-private:
-    NGN::Logger& m_Logger;
-};
 
 class Sandbox final : public NGN::Application
 {
 public:
     explicit Sandbox(const NGN::List<NGN::String>& args)
-        : Application(args), m_Listener(m_EventManager, m_Logger)
+        : Application(args)
+        , m_Window1(NGN::Window::Specification { .Title = "Window 1", .Width = 800, .Height = 600 })
+        , m_Window2(NGN::Window::Specification { .Title = "Window 2", .Width = 400, .Height = 600 })
     {
         m_Logger.Info() << "Sandbox Created" << NGN::Logger::EndLine;
     }
 
     void OnUpdate() override
     {
-        m_EventManager->TriggerEvent(NGN::EventType::DEBUG1, { .Debug = nullptr });
-        m_EventManager->TriggerEvent(NGN::EventType::DEBUG2, { .Debug = nullptr });
-        m_EventManager->TriggerEvent(NGN::EventType::DEBUG3, { .Debug = nullptr });
+        m_Window1.PollEvents();
+        m_Window2.PollEvents();
     }
 
 private:
-    DebugListener m_Listener;
+    NGN::Window m_Window1;
+    NGN::Window m_Window2;
 };
 
 NGN_ENTRY_POINT(Sandbox)
