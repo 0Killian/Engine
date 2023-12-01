@@ -20,7 +20,9 @@ public:
             NGN::EventType::WINDOW_RESIZE,
             NGN::EventType::WINDOW_FOCUS,
             NGN::EventType::WINDOW_LOST_FOCUS,
-            NGN::EventType::WINDOW_MOVED
+            NGN::EventType::WINDOW_MOVED,
+            NGN::EventType::KEY_PRESSED,
+            NGN::EventType::KEY_RELEASED,
         }, std::move(eventManager))
         , m_Window1(window1)
         , m_Window2(window2)
@@ -29,7 +31,11 @@ public:
 
     bool OnEvent(NGN::EventType type, NGN::EventData data) override
     {
-        if(m_Window1.has_value() && data.WindowID == m_Window1->GetID())
+        if(type == NGN::EventType::KEY_PRESSED)
+            m_Logger.Info() << "Key Pressed: " << ToString(data.Key) << NGN::Logger::EndLine;
+        else if(type == NGN::EventType::KEY_RELEASED)
+            m_Logger.Info() << "Key Released: " << ToString(data.Key) << NGN::Logger::EndLine;
+        else if(m_Window1.has_value() && data.WindowID == m_Window1->GetID())
         {
             if(type == NGN::EventType::WINDOW_CLOSE)
                 m_Window1.reset();
@@ -39,7 +45,7 @@ public:
                 m_Logger.Info() << "Window 1 Lost Focus" << NGN::Logger::EndLine;
             else if(type == NGN::EventType::WINDOW_MOVED)
                 m_Logger.Info() << "Window 1 Moved to " << data.WindowMoved.X << "x" << data.WindowMoved.Y << NGN::Logger::EndLine;
-            else
+            else if(type == NGN::EventType::WINDOW_RESIZE)
                 m_Logger.Info() << "Window 1 Resized to " << data.WindowSize.Width << "x" << data.WindowSize.Height << NGN::Logger::EndLine;
         }
         else if(m_Window2.has_value() && data.WindowID == m_Window2->GetID())
@@ -52,7 +58,7 @@ public:
                 m_Logger.Info() << "Window 2 Lost Focus" << NGN::Logger::EndLine;
             else if(type == NGN::EventType::WINDOW_MOVED)
                 m_Logger.Info() << "Window 2 Moved to " << data.WindowMoved.X << "x" << data.WindowMoved.Y << NGN::Logger::EndLine;
-            else
+            else if(type == NGN::EventType::WINDOW_RESIZE)
                 m_Logger.Info() << "Window 2 Resized to " << data.WindowSize.Width << "x" << data.WindowSize.Height << NGN::Logger::EndLine;
         }
 
@@ -70,8 +76,8 @@ class Sandbox final : public NGN::Application
 public:
     explicit Sandbox(const NGN::List<NGN::String>& args)
         : Application(args)
-        , m_Window1(NGN::Window(NGN::Window::Specification { .Title = "Window 1", .Width = 800, .Height = 600 }, m_EventManager))
-        , m_Window2(NGN::Window(NGN::Window::Specification { .Title = "Window 2", .Width = 400, .Height = 600 }, m_EventManager))
+        , m_Window1(NGN::Window(NGN::Window::Specification { .Title = "Window 1", .Width = 800, .Height = 600 }, m_EventManager, m_Logger))
+        , m_Window2(NGN::Window(NGN::Window::Specification { .Title = "Window 2", .Width = 400, .Height = 600 }, m_EventManager, m_Logger))
         , m_WindowListener(m_EventManager, m_Window1, m_Window2, m_Logger)
     {
         m_Logger.Info() << "Sandbox Created" << NGN::Logger::EndLine;

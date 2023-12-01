@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <Events.h>
 
-#include "Platform.h"
 #include "Containers/String.h"
 
 namespace NGN
@@ -20,7 +19,7 @@ namespace NGN
             uint32_t Height;
         };
 
-        explicit Window(Specification spec, std::shared_ptr<EventManager>);
+        explicit Window(Specification spec, std::shared_ptr<EventManager>, Logger& logger);
         ~Window();
 
         Window(Window&&) noexcept;
