@@ -4,6 +4,8 @@
 #pragma once
 #include <memory>
 
+#include "Key.h"
+#include "MouseButton.h"
 #include "Logger.h"
 #include "Containers/HashMap.h"
 #include "Containers/List.h"
@@ -20,14 +22,14 @@ namespace NGN
         WINDOW_MOVED,
 
         // Key
-        //KEY_PRESSED,
-        //KEY_RELEASED,
+        KEY_PRESSED,
+        KEY_RELEASED,
 
         // Mouse
-        //MOUSE_BUTTON_PRESSED,
-        //MOUSE_BUTTON_RELEASED,
-        //MOUSE_MOVED,
-        //MOUSE_SCROLLED,
+        MOUSE_BUTTON_PRESSED,
+        MOUSE_BUTTON_RELEASED,
+        MOUSE_MOVED,
+        MOUSE_SCROLLED,
 
         DEBUG1,
         DEBUG2,
@@ -55,6 +57,21 @@ namespace NGN
             int32_t X;
             int32_t Y;
         } WindowMoved;
+
+        Key Key;
+        MouseButton MouseButton;
+
+        struct MouseMoved
+        {
+            float X;
+            float Y;
+        } MouseMoved;
+
+        struct MouseScrolled
+        {
+            float X;
+            float Y;
+        } MouseScrolled;
     };
 
     class EventManager;
@@ -73,9 +90,11 @@ namespace NGN
 
         virtual bool OnEvent(EventType type, EventData data) = 0;
 
+    protected:
+        std::shared_ptr<EventManager> m_Manager;
+
     private:
         size_t m_Id;
-        std::shared_ptr<EventManager> m_Manager;
     };
 
     class EventManager
