@@ -10,4 +10,7 @@ namespace NGN
     {
         os << t;
     };
+
+    template <typename T>
+    const char* ToString(T value);
 }
