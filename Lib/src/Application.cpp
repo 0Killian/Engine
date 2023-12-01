@@ -18,8 +18,9 @@ namespace NGN
     Application::Application(const List<String>& args)
         : m_Inner(new ApplicationInner {
             Configuration(args) // TODO: Read from config file if it exists
-        }),
-        m_Logger(static_cast<ApplicationInner*>(m_Inner)->m_Configuration.log_level)
+        })
+        , m_Logger(static_cast<ApplicationInner*>(m_Inner)->m_Configuration.log_level)
+        , m_Input(m_EventManager)
     {
         m_Logger.Info() << "Application created with configuration: " << static_cast<ApplicationInner*>(m_Inner)->m_Configuration << Logger::EndLine;
     }

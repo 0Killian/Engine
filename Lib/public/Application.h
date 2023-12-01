@@ -6,6 +6,7 @@
 #include <Platform.h>
 
 #include "Events.h"
+#include "Input.h"
 #include "Logger.h"
 #include "Containers/String.h"
 
@@ -30,6 +31,7 @@ namespace NGN
         Logger m_Logger;
         std::shared_ptr<EventManager> m_EventManager = std::make_shared<EventManager>(m_Logger);
         Platform m_Platform;
+        Input m_Input;
         bool m_ShouldExit = false;
     };
 }
