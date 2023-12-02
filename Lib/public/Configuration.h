@@ -4,7 +4,7 @@
 #pragma once
 
 #include "Containers/String.h"
-#include "../public/Logger.h"
+#include "Logger.h"
 
 namespace NGN
 {
@@ -22,12 +22,13 @@ namespace NGN
 
         static_assert(ConfigValue<LogLevel>);
 
-        LogLevel log_level = LogLevel::Info;
+        LogLevel LogLevel = LogLevel::Info;
+        bool VSync = false;
     };
 
     inline Logger::LogChannel& operator<<(Logger::LogChannel& channel, const Configuration& config)
     {
-        channel << "Configuration: { log_level: " << config.log_level.ToConfigString() << " }";
+        channel << "Configuration: { LogLevel: " << config.LogLevel.ToConfigString() << ", VSync: " << config.VSync << " }";
         return channel;
     }
 }

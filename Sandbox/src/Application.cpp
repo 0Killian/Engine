@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "Engine.h"
+#include "Renderer.h"
 
 class Sandbox;
 
@@ -76,10 +77,13 @@ class Sandbox final : public NGN::Application
 public:
     explicit Sandbox(const NGN::List<NGN::String>& args)
         : Application(args)
-        , m_Window1(NGN::Window(NGN::Window::Specification { .Title = "Window 1", .Width = 800, .Height = 600 }, m_EventManager, m_Logger))
-        , m_Window2(NGN::Window(NGN::Window::Specification { .Title = "Window 2", .Width = 400, .Height = 600 }, m_EventManager, m_Logger))
+        , m_Window1(NGN::Window(NGN::Window::Specification { .Title = "Window 1", .Width = 800, .Height = 600, .API = NGN::RenderAPI::D3D11 }, m_EventManager, m_Logger, m_Configuration))
+        , m_Window2(NGN::Window(NGN::Window::Specification { .Title = "Window 2", .Width = 400, .Height = 600 }, m_EventManager, m_Logger, m_Configuration))
         , m_WindowListener(m_EventManager, m_Window1, m_Window2, m_Logger)
+        , m_Renderer(&(m_Window1->GetRenderer()))
     {
+        if(m_Renderer == nullptr)
+            throw std::runtime_error("Renderer was not created");
         m_Logger.Info() << "Sandbox Created" << NGN::Logger::EndLine;
     }
 
@@ -93,11 +97,19 @@ public:
 
         if(!m_Window1 && !m_Window2)
             Exit();
+
+        if(m_Window1)
+        {
+            NGN::FrameData data;
+            NGN::FramePacket packet = m_Renderer->StartFrame(data);
+            m_Renderer->EndFrame(std::move(packet));
+        }
     }
 
 private:
     std::optional<NGN::Window> m_Window1;
     std::optional<NGN::Window> m_Window2;
+    NGN::Renderer* m_Renderer = nullptr;
 
     WindowListener m_WindowListener;
 

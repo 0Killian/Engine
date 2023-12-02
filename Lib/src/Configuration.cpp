@@ -1,7 +1,7 @@
 //
 // Created by Killian on 28/11/2023.
 //
-#include "Configuration.h"
+#include "../public/Configuration.h"
 
 namespace NGN
 {
@@ -25,12 +25,16 @@ namespace NGN
                 }
                 else if(arg.StartsWith("-l="))
                 {
-                    this->log_level = LogLevel::FromConfigString(arg.Split("=")[1]);
+                    this->LogLevel = LogLevel::FromConfigString(arg.Split("=")[1]);
+                }
+                else if (arg == "--vsync")
+                {
+                    this->VSync = true;
                 }
             }
             else if (state == ParseState::LogLevel)
             {
-                this->log_level = LogLevel::FromConfigString(arg);
+                this->LogLevel = LogLevel::FromConfigString(arg);
                 state = ParseState::None;
             }
         }

@@ -8,18 +8,15 @@
 
 #include <utility>
 
-namespace Windows
-{
+#include "D3D11/Renderer.h"
+
 #include <Windows.h>
 #undef RegisterClass
-#undef LOWORD
-#undef HIWORD
 #undef DELETE
 #undef MOUSE_MOVED
 
-#define LOWORD(l) ((Windows::WORD) (((Windows::DWORD_PTR) (l)) & 0xffff))
-#define HIWORD(l) ((Windows::WORD) ((((Windows::DWORD_PTR) (l)) >> 16) & 0xffff))
-
+namespace Windows
+{
     std::optional<NGN::Key> TranslateKey(WORD wp, bool lastRCtrlState, bool lastRShiftState, bool lastRAltState, bool pressed)
     {
         switch (wp)
@@ -143,10 +140,11 @@ namespace NGN
 
     struct WindowInner
     {
-        Windows::HWND m_Handle = nullptr;
+        HWND m_Handle = nullptr;
         uint64_t m_Id = s_nextId++;
         std::shared_ptr<EventManager> m_EventManager;
         Logger& m_Logger;
+        std::unique_ptr<Renderer> m_Renderer = nullptr;
 
         bool m_LastRCtrlState = false;
         bool m_LastRShiftState = false;
@@ -157,7 +155,7 @@ namespace NGN
         {
         }
 
-        Windows::LRESULT CALLBACK WndProc(Windows::HWND hwnd, Windows::UINT message, Windows::WPARAM wp, Windows::LPARAM lp)
+        LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wp, LPARAM lp)
         {
             switch(message)
             {
@@ -235,7 +233,7 @@ namespace NGN
             case WM_KEYDOWN:
             case WM_KEYUP:
             {
-                auto win_key = static_cast<Windows::WORD>(wp);
+                auto win_key = static_cast<WORD>(wp);
                 auto key = Windows::TranslateKey(win_key, m_LastRCtrlState, m_LastRShiftState, m_LastRAltState, message == WM_KEYDOWN || message == WM_SYSKEYDOWN);
                 if(!key)
                 {
@@ -357,21 +355,21 @@ namespace NGN
             }
         }
 
-        static Windows::LRESULT CALLBACK WndProcStub(Windows::HWND hwnd, Windows::UINT message, Windows::WPARAM wp, Windows::LPARAM lp)
+        static LRESULT CALLBACK WndProcStub(HWND hwnd, UINT message, WPARAM wp, LPARAM lp)
         {
             auto window = reinterpret_cast<WindowInner*>(GetWindowLongPtrA(hwnd, GWLP_USERDATA));
             return window->WndProc(hwnd, message, wp, lp);
         }
     };
 
-    Windows::LRESULT CALLBACK WndProcSetup(Windows::HWND hwnd, Windows::UINT message, Windows::WPARAM wp, Windows::LPARAM lp)
+    LRESULT CALLBACK WndProcSetup(HWND hwnd, UINT message, WPARAM wp, LPARAM lp)
     {
         if(message == WM_NCCREATE)
         {
-            auto cs = reinterpret_cast<Windows::CREATESTRUCT*>(lp);
+            auto cs = reinterpret_cast<CREATESTRUCT*>(lp);
             auto window = static_cast<WindowInner*>(cs->lpCreateParams);
-            SetWindowLongPtrA(hwnd, GWLP_USERDATA, reinterpret_cast<Windows::LONG_PTR>(window));
-            SetWindowLongPtrA(hwnd, GWLP_WNDPROC, reinterpret_cast<Windows::LONG_PTR>(WindowInner::WndProcStub));
+            SetWindowLongPtrA(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
+            SetWindowLongPtrA(hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(WindowInner::WndProcStub));
             return window->WndProc(hwnd, message, wp, lp);
         }
 
@@ -380,11 +378,11 @@ namespace NGN
 
     void RegisterClass()
     {
-        auto hInstance = Windows::GetModuleHandleA(nullptr);
+        auto hInstance = GetModuleHandleA(nullptr);
         auto className = "NGNWindowClass";
 
-        auto wndClass = Windows::WNDCLASSEXA {
-            .cbSize = sizeof(Windows::WNDCLASSEXA),
+        auto wndClass = WNDCLASSEXA {
+            .cbSize = sizeof(WNDCLASSEXA),
             .style = CS_OWNDC,
             .lpfnWndProc = WndProcSetup,
             .cbClsExtra = 0,
@@ -406,20 +404,20 @@ namespace NGN
         s_ClassRegistered = true;
     }
 
-    Window::Window(Specification spec, std::shared_ptr<EventManager> manager, Logger& logger)
+    Window::Window(const Specification& spec, const std::shared_ptr<EventManager>& manager, Logger& logger, Configuration& config)
     {
         if(!s_ClassRegistered)
         {
             RegisterClass();
         }
 
-        auto hInstance = Windows::GetModuleHandleA(nullptr);
+        const auto hInstance = GetModuleHandleA(nullptr);
         auto className = "NGNWindowClass";
 
         m_Inner = new WindowInner(logger);
-        static_cast<WindowInner*>(m_Inner)->m_EventManager = std::move(manager);
+        static_cast<WindowInner*>(m_Inner)->m_EventManager = manager;
 
-        auto hwnd = Windows::CreateWindowExA(
+        auto hwnd = CreateWindowExA(
             0,
             className,
             spec.Title.GetData(),
@@ -439,9 +437,18 @@ namespace NGN
             throw std::runtime_error("Failed to create window");
         }
 
-        Windows::ShowWindow(hwnd, SW_SHOW);
+        ShowWindow(hwnd, SW_SHOW);
 
         static_cast<WindowInner*>(m_Inner)->m_Handle = hwnd;
+
+        switch(spec.API)
+        {
+        case RenderAPI::NONE:
+            break;
+
+        case RenderAPI::D3D11:
+            static_cast<WindowInner*>(m_Inner)->m_Renderer = std::make_unique<D3D11Renderer>(hwnd, logger, manager, config, spec.Width, spec.Height, static_cast<WindowInner*>(m_Inner)->m_Id);
+        }
     }
 
     uint64_t Window::GetID() const
@@ -453,18 +460,18 @@ namespace NGN
     {
         if(m_Inner != nullptr)
         {
-            Windows::DestroyWindow(static_cast<WindowInner*>(m_Inner)->m_Handle);
+            DestroyWindow(static_cast<WindowInner*>(m_Inner)->m_Handle);
             delete static_cast<WindowInner*>(m_Inner);
         }
     }
 
     void Window::PollEvents()
     {
-        Windows::MSG msg;
+        MSG msg;
         while(PeekMessageA(&msg, static_cast<WindowInner*>(m_Inner)->m_Handle, 0, 0, PM_REMOVE))
         {
-            Windows::TranslateMessage(&msg);
-            Windows::DispatchMessageA(&msg);
+            TranslateMessage(&msg);
+            DispatchMessageA(&msg);
         }
     }
 
@@ -483,5 +490,10 @@ namespace NGN
         }
 
         return *this;
+    }
+
+    Renderer& Window::GetRenderer() const
+    {
+        return *static_cast<WindowInner*>(m_Inner)->m_Renderer;
     }
 }

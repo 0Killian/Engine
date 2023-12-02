@@ -6,23 +6,20 @@
 #include <iostream>
 #include <thread>
 
-#include "Configuration.h"
+#include "../public/Configuration.h"
 
 namespace NGN
 {
     struct ApplicationInner
     {
-        Configuration m_Configuration;
     };
 
     Application::Application(const List<String>& args)
-        : m_Inner(new ApplicationInner {
-            Configuration(args) // TODO: Read from config file if it exists
-        })
-        , m_Logger(static_cast<ApplicationInner*>(m_Inner)->m_Configuration.log_level)
+        : m_Configuration(args) // TODO: Read from config file if it exists
+        , m_Logger(m_Configuration.LogLevel)
         , m_Input(m_EventManager)
     {
-        m_Logger.Info() << "Application created with configuration: " << static_cast<ApplicationInner*>(m_Inner)->m_Configuration << Logger::EndLine;
+        m_Logger.Info() << "Application created with configuration: " << m_Configuration << Logger::EndLine;
     }
 
     Application::~Application()

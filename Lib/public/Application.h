@@ -5,6 +5,7 @@
 
 #include <Platform.h>
 
+#include "Configuration.h"
 #include "Events.h"
 #include "Input.h"
 #include "Logger.h"
@@ -28,6 +29,7 @@ namespace NGN
         void* m_Inner = nullptr;
 
     protected:
+        Configuration m_Configuration;
         Logger m_Logger;
         std::shared_ptr<EventManager> m_EventManager = std::make_shared<EventManager>(m_Logger);
         Platform m_Platform;

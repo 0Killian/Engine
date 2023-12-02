@@ -5,6 +5,9 @@
 #include <cstdint>
 #include <Events.h>
 
+#include "Configuration.h"
+#include "RenderAPI.h"
+#include "Renderer.h"
 #include "Containers/String.h"
 
 namespace NGN
@@ -14,12 +17,13 @@ namespace NGN
     public:
         struct Specification
         {
-            String Title;
-            uint32_t Width;
-            uint32_t Height;
+            String Title = "NGN Application";
+            uint32_t Width = 1280;
+            uint32_t Height = 720;
+            RenderAPI API = RenderAPI::NONE;
         };
 
-        explicit Window(Specification spec, std::shared_ptr<EventManager>, Logger& logger);
+        explicit Window(const Specification& spec, const std::shared_ptr<EventManager>&, Logger& logger, Configuration& config);
         ~Window();
 
         Window(Window&&) noexcept;
@@ -30,6 +34,8 @@ namespace NGN
 
         void PollEvents();
         [[nodiscard]] uint64_t GetID() const;
+
+        [[nodiscard]] Renderer& GetRenderer() const;
 
     private:
         void* m_Inner = nullptr;
