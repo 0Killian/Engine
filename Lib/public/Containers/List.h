@@ -33,6 +33,16 @@ namespace NGN
             m_Data.erase(m_Data.begin() + index);
         }
 
+        void Reserve(size_t size)
+        {
+            m_Data.reserve(size);
+        }
+
+        void Clear()
+        {
+            m_Data.clear();
+        }
+
         [[nodiscard]] size_t Size() const { return m_Data.size(); }
 
         const T& operator[](size_t index) const { return m_Data[index]; }
