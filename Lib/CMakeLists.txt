@@ -13,7 +13,6 @@ target_include_directories(Lib PRIVATE inc)
 target_include_directories(Lib PUBLIC public)
 
 if(WIN32)
-    # Link to dxgi, d3d11, d3dcompiler, dxguid, d3d11_1sdklayers
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_link_libraries(Lib PRIVATE dxgi d3d11 d3dcompiler dxguid)
     else()

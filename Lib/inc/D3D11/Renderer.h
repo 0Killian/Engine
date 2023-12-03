@@ -14,21 +14,21 @@
 
 #include "../../public/Configuration.h"
 
-namespace NGN
+namespace NGN::D3D11
 {
-    class D3D11Renderer final : public Renderer, public EventListener
+    class Renderer final : public NGN::Renderer, public EventListener
     {
     public:
-        D3D11Renderer(void* hwnd, Logger& logger, std::shared_ptr<EventManager> eventManager, Configuration& config, size_t width, size_t height, size_t id);
-        ~D3D11Renderer() override;
+        Renderer(void* hwnd, Logger& logger, std::shared_ptr<EventManager> eventManager, const Configuration& config, size_t width, size_t height, size_t id);
+        ~Renderer() override;
 
-        D3D11Renderer(D3D11Renderer&&) = default;
-        D3D11Renderer& operator=(D3D11Renderer&&) noexcept = default;
-        D3D11Renderer(const D3D11Renderer&) = delete;
-        D3D11Renderer& operator=(const D3D11Renderer&) = delete;
+        Renderer(Renderer&&) = default;
+        Renderer& operator=(Renderer&&) noexcept = delete;
+        Renderer(const Renderer&) = delete;
+        Renderer& operator=(const Renderer&) = delete;
 
         FramePacket StartFrame(FrameData& frameData) override;
-        void EndFrame(FramePacket&& packet) override;
+        void EndFrame(FramePacket packet) override;
 
         void SetVSync(bool enabled);
 

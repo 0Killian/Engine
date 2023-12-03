@@ -32,20 +32,20 @@ namespace NGN
         switch (m_Value)
         {
         case Trace:
-            return String("trace");
+            return "trace";
         case Debug:
-            return String("debug");
+            return "debug";
         case Info:
-            return String("info");
+            return "info";
         case Warning:
-            return String("warning");
+            return "warning";
         case Error:
-            return String("error");
+            return "error";
         case Critical:
-            return String("critical");
+            return "critical";
         }
 
-        return String("info");
+        return "info";
     }
 
     void Logger::LogChannel::LogPrefix()
@@ -73,7 +73,7 @@ namespace NGN
         return *this;
     }
 
-    Logger::LogChannel& Logger::LogChannel::operator<<(int32_t i)
+    Logger::LogChannel& Logger::LogChannel::operator<<(const int32_t i)
     {
         LogPrefix();
 
@@ -82,7 +82,7 @@ namespace NGN
         return *this;
     }
 
-    Logger::LogChannel& Logger::LogChannel::operator<<(uint32_t i)
+    Logger::LogChannel& Logger::LogChannel::operator<<(const uint32_t i)
     {
         LogPrefix();
 
@@ -91,7 +91,7 @@ namespace NGN
         return *this;
     }
 
-    Logger::LogChannel& Logger::LogChannel::operator<<(int64_t i)
+    Logger::LogChannel& Logger::LogChannel::operator<<(const int64_t i)
     {
         LogPrefix();
 
@@ -100,7 +100,7 @@ namespace NGN
         return *this;
     }
 
-    Logger::LogChannel& Logger::LogChannel::operator<<(uint64_t i)
+    Logger::LogChannel& Logger::LogChannel::operator<<(const uint64_t i)
     {
         LogPrefix();
 
@@ -109,7 +109,7 @@ namespace NGN
         return *this;
     }
 
-    Logger::LogChannel& Logger::LogChannel::operator<<(float f)
+    Logger::LogChannel& Logger::LogChannel::operator<<(const float f)
     {
         LogPrefix();
 
@@ -118,7 +118,7 @@ namespace NGN
         return *this;
     }
 
-    Logger::LogChannel& Logger::LogChannel::operator<<(double d)
+    Logger::LogChannel& Logger::LogChannel::operator<<(const double d)
     {
         LogPrefix();
 
@@ -127,7 +127,7 @@ namespace NGN
         return *this;
     }
 
-    Logger::LogChannel& Logger::LogChannel::operator<<(bool b)
+    Logger::LogChannel& Logger::LogChannel::operator<<(const bool b)
     {
         LogPrefix();
 
@@ -136,7 +136,7 @@ namespace NGN
         return *this;
     }
 
-    Logger::LogChannel& Logger::LogChannel::operator<<(Marker marker)
+    Logger::LogChannel& Logger::LogChannel::operator<<(const Marker marker)
     {
         switch (marker)
         {
@@ -149,7 +149,7 @@ namespace NGN
         return *this;
     }
 
-    Logger::Logger(LogLevel maxLevel)
+    Logger::Logger(const LogLevel maxLevel)
     {
         switch(static_cast<LogLevel::Value>(maxLevel))
         {

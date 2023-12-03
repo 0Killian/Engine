@@ -18,7 +18,7 @@ namespace NGN
     class BitfieldProxy
     {
     public:
-        BitfieldProxy(std::bitset<static_cast<size_t>(T::_COUNT)>& bits, size_t index)
+        BitfieldProxy(std::bitset<static_cast<size_t>(T::_COUNT)>& bits, const size_t index)
             : m_Bits(bits)
             , m_Index(index)
         {}
@@ -29,7 +29,8 @@ namespace NGN
             return *this;
         }
 
-        operator bool() const
+        // ReSharper disable once CppNonExplicitConversionOperator
+        operator bool() const // NOLINT(*-explicit-constructor)
         {
             return m_Bits[m_Index];
         }

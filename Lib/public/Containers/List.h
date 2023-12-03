@@ -3,7 +3,6 @@
 //
 #pragma once
 
-#include "Utils.h"
 #include <vector>
 
 namespace NGN
@@ -57,19 +56,4 @@ namespace NGN
     private:
         std::vector<T> m_Data;
     };
-
-    template <typename T>
-    requires ostreamable<T>
-    std::ostream& operator<<(std::ostream& os, const List<T>& list)
-    {
-        os << std::string("[");
-        for (size_t i = 0; i < list.Size(); ++i)
-        {
-            os << list[i];
-            if (i != list.Size() - 1)
-                os << std::string(", ");
-        }
-        os << std::string("]");
-        return os;
-    }
 }

@@ -22,7 +22,7 @@ namespace NGN
     };
 
     template <>
-    inline const char* ToString<Key>(Key value)
+    inline String ToString<Key>(const Key value)
     {
         switch(value)
         {

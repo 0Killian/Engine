@@ -2,15 +2,12 @@
 // Created by Killian on 28/11/2023.
 //
 #pragma once
+#include "Containers/String.h"
 
 namespace NGN
 {
     template <typename T>
-    concept ostreamable = requires(std::ostream& os, const T& t)
-    {
-        os << t;
-    };
+    String ToString(T value) = delete;
 
-    template <typename T>
-    const char* ToString(T value);
+    String ToHex(uint32_t value);
 }

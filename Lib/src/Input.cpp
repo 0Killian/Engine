@@ -15,15 +15,14 @@ namespace NGN
             EventType::MOUSE_SCROLLED,
             // EventType::FRAME_STARTED
         }, std::move(eventManager))
-        , m_TextBuffer("")
     {}
 
-    bool Input::IsKeyPressed(Key key)
+    bool Input::IsKeyPressed(const Key key)
     {
         return m_Keys[key];
     }
 
-    bool Input::IsMouseButtonPressed(MouseButton button)
+    bool Input::IsMouseButtonPressed(const MouseButton button)
     {
         return m_MouseButtons[button];
     }
@@ -74,7 +73,7 @@ namespace NGN
         return m_TextBuffer;
     }
 
-    bool Input::OnEvent(EventType type, EventData data)
+    bool Input::OnEvent(const EventType type, const EventData data)
     {
         switch(type)
         {

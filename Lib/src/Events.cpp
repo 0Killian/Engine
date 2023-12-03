@@ -3,6 +3,8 @@
 //
 #include "Events.h"
 
+#include <ranges>
+
 #include "Logger.h"
 #include "Containers/HashMap.h"
 
@@ -47,7 +49,7 @@ namespace NGN
         return id;
     }
 
-    void EventManager::RemoveListener(size_t id)
+    void EventManager::RemoveListener(const size_t id)
     {
         if(id >= m_Listeners.Size())
             return;
@@ -59,9 +61,8 @@ namespace NGN
 
         m_Listeners[id] = nullptr;
 
-        for(auto& pair : m_ListenerMap)
+        for(auto& list : std::ranges::views::values(m_ListenerMap))
         {
-            auto& list = pair.second;
             for(size_t i = 0; i < list.Size(); ++i)
             {
                 if(list[i] == id)
@@ -73,7 +74,7 @@ namespace NGN
         }
     }
 
-    void EventManager::MoveListener(size_t id, EventListener* listener)
+    void EventManager::MoveListener(const size_t id, EventListener* listener)
     {
         if(id >= m_Listeners.Size())
             return;
@@ -81,11 +82,11 @@ namespace NGN
         m_Listeners[id] = listener;
     }
 
-    void EventManager::TriggerEvent(EventType type, EventData data)
+    void EventManager::TriggerEvent(EventType type, const EventData data)
     {
         m_Logger.Debug() << "Triggering event " << static_cast<int>(type) << Logger::EndLine;
 
-        for(size_t id : m_ListenerMap[type])
+        for(const size_t id : m_ListenerMap[type])
         {
             if(m_Listeners[id] != nullptr)
             {
@@ -110,7 +111,8 @@ namespace NGN
     }
 
     EventListener::EventListener(EventListener&& other) noexcept
-        : m_Id(other.m_Id), m_Manager(std::move(other.m_Manager))
+        : m_Manager(std::move(other.m_Manager))
+        , m_Id(other.m_Id)
     {
         if(this == &other)
         {

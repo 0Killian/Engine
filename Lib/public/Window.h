@@ -32,7 +32,7 @@ namespace NGN
         Window(Window&) = delete;
         Window& operator=(Window&) = delete;
 
-        void PollEvents();
+        void PollEvents() const;
         [[nodiscard]] uint64_t GetID() const;
 
         [[nodiscard]] Renderer& GetRenderer() const;

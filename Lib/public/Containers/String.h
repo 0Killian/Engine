@@ -14,7 +14,10 @@ namespace NGN
     {
         // TODO: Implement own string class
     public:
-        String(const char* string)
+        String() = default;
+
+        // ReSharper disable once CppNonExplicitConvertingConstructor
+        String(const char* string) // NOLINT(*-explicit-constructor)
             : m_Data(string)
         {}
 
@@ -38,7 +41,7 @@ namespace NGN
 
         [[nodiscard]] String SubStr(const size_t start, const size_t length = std::string::npos) const
         {
-            return String(m_Data.substr(start, length).c_str());
+            return m_Data.substr(start, length).c_str();
         }
 
         [[nodiscard]] const char* GetData() const { return m_Data.c_str(); }
@@ -56,6 +59,13 @@ namespace NGN
         [[nodiscard]] bool StartsWith(const char* other) const
         {
             return m_Data.find(other) == 0;
+        }
+
+        String operator+(const String& other) const
+        {
+            String ret;
+            ret.m_Data = m_Data + other.m_Data;
+            return ret;
         }
 
     private:

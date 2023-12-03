@@ -22,9 +22,12 @@ namespace NGN
         };
 
         LogLevel() = default;
-        constexpr LogLevel(const Value value) : m_Value(value) {}
+        // ReSharper disable once CppNonExplicitConvertingConstructor
+        constexpr LogLevel(const Value value) : m_Value(value) {} // NOLINT(*-explicit-constructor)
 
-        constexpr operator Value() const { return m_Value; }
+        // ReSharper disable once CppNonExplicitConversionOperator
+        constexpr operator Value() const { return m_Value; } // NOLINT(*-explicit-constructor)
+        // ReSharper disable once CppNonExplicitConversionOperator
         constexpr operator bool() const = delete;
 
         static LogLevel FromConfigString(const class String& str);
@@ -70,15 +73,15 @@ namespace NGN
         public:
             explicit DisabledLogChannel(const char* name) : LogChannel(name) {}
 
-            LogChannel& operator<<(const char* str) final { return *this; }
-            LogChannel& operator<<(int32_t i) final { return *this; }
-            LogChannel& operator<<(uint32_t i) final { return *this; }
-            LogChannel& operator<<(int64_t i) final { return *this; }
-            LogChannel& operator<<(uint64_t i) final { return *this; }
-            LogChannel& operator<<(float f) final { return *this; }
-            LogChannel& operator<<(double d) final { return *this; }
-            LogChannel& operator<<(bool b) final { return *this; }
-            LogChannel& operator<<(Marker marker) final { return *this; }
+            LogChannel& operator<<(const char*) override { return *this; }
+            LogChannel& operator<<(int32_t) override { return *this; }
+            LogChannel& operator<<(uint32_t) override { return *this; }
+            LogChannel& operator<<(int64_t) override { return *this; }
+            LogChannel& operator<<(uint64_t) override { return *this; }
+            LogChannel& operator<<(float) override { return *this; }
+            LogChannel& operator<<(double) override { return *this; }
+            LogChannel& operator<<(bool) override { return *this; }
+            LogChannel& operator<<(Marker) override { return *this; }
         };
 
         explicit Logger(LogLevel maxLevel);

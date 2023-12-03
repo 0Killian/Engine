@@ -7,9 +7,19 @@
 #include <d3dcompiler.h>
 #include <d3d11sdklayers.h>
 
+#include "D3D11/Utils.h"
+
 namespace NGN
 {
-    D3D11Renderer::D3D11Renderer(void* hwnd, Logger& logger, std::shared_ptr<EventManager> eventManager, Configuration& config, size_t width, size_t height, size_t id)
+    D3D11::Renderer::Renderer(
+        void* hwnd,
+        Logger& logger,
+        std::shared_ptr<EventManager>
+        eventManager,
+        const Configuration& config,
+        const size_t width,
+        const size_t height,
+        const size_t id)
         : EventListener({
             EventType::WINDOW_RESIZE
         }, eventManager)
@@ -18,19 +28,16 @@ namespace NGN
         , m_WindowID(id)
         , m_VSync(config.VSync)
     {
-        if(FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&m_Factory))))
-        {
-            throw std::runtime_error("Failed to create DXGI Factory");
-        }
+        THROW_IF_FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&m_Factory)));
 
         constexpr auto featureLevel = D3D_FEATURE_LEVEL_11_1;
-        UINT flags = 0;//D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+        UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
 #ifdef NGN_DEBUG
         flags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-        if(FAILED(D3D11CreateDevice(
+        THROW_IF_FAILED(D3D11CreateDevice(
             nullptr,
             D3D_DRIVER_TYPE_HARDWARE,
             nullptr,
@@ -40,16 +47,10 @@ namespace NGN
             D3D11_SDK_VERSION,
             &m_Device,
             nullptr,
-            &m_Context)))
-        {
-            throw std::runtime_error("Failed to create D3D11 Device");
-        }
+            &m_Context));
 
 #ifdef NGN_DEBUG
-        if(FAILED(m_Device.As(&m_Debug)))
-        {
-            throw std::runtime_error("Failed to get D3D11 Debug interface");
-        }
+        THROW_IF_FAILED(m_Device.As(&m_Debug));
 #endif
 
         m_Width = width;
@@ -84,52 +85,42 @@ namespace NGN
             .Windowed = true
         };
 
-        HRESULT hr = m_Factory->CreateSwapChainForHwnd(
+        THROW_IF_FAILED(m_Factory->CreateSwapChainForHwnd(
             m_Device.Get(),
             static_cast<HWND>(hwnd),
             &swapChainDesc,
             &swapChainFullscreenDesc,
             nullptr,
-            &m_SwapChain);
-        if(FAILED(hr))
-        {
-            throw std::runtime_error("Failed to create DXGI SwapChain: " + std::to_string(hr));
-        }
+            &m_SwapChain));
 
         CreateSwapchainResources();
     }
 
-    void D3D11Renderer::CreateSwapchainResources()
+    void D3D11::Renderer::CreateSwapchainResources()
     {
         m_FramePackets.Reserve(m_FramesInFlight);
         for(size_t i = 0; i < m_FramesInFlight; i++)
         {
             FramePacketData framePacketData;
-            if(FAILED(m_SwapChain->GetBuffer(0, IID_PPV_ARGS(&framePacketData.BackBuffer))))
-            {
-                throw std::runtime_error("Failed to get DXGI SwapChain back buffer");
-            }
 
-            if(FAILED(m_Device->CreateRenderTargetView(framePacketData.BackBuffer.Get(), nullptr, &framePacketData.BackBufferRTV)))
-            {
-                throw std::runtime_error("Failed to create D3D11 RenderTargetView");
-            }
+            THROW_IF_FAILED(m_SwapChain->GetBuffer(0, IID_PPV_ARGS(&framePacketData.BackBuffer)));
+            THROW_IF_FAILED(m_Device->CreateRenderTargetView(framePacketData.BackBuffer.Get(), nullptr, &framePacketData.BackBufferRTV));
 
             m_FramePackets.PushBack(framePacketData);
         }
     }
 
-    void D3D11Renderer::DestroySwapchainResources()
+    void D3D11::Renderer::DestroySwapchainResources()
     {
-        for(auto framePacket : m_FramePackets)
+        for(auto [BackBuffer, BackBufferRTV] : m_FramePackets)
         {
-            framePacket.BackBufferRTV.Reset();
-            framePacket.BackBuffer.Reset();
+            BackBufferRTV.Reset();
+            BackBuffer.Reset();
         }
         m_FramePackets.Clear();
     }
 
-    bool D3D11Renderer::OnEvent(EventType type, EventData data)
+    bool D3D11::Renderer::OnEvent(const EventType type, const EventData data)
     {
         switch(type)
         {
@@ -139,10 +130,7 @@ namespace NGN
                 m_Context->Flush();
 
                 DestroySwapchainResources();
-                if(FAILED(m_SwapChain->ResizeBuffers(0, data.WindowSize.Width, data.WindowSize.Height, DXGI_FORMAT_R8G8B8A8_UNORM, 0)))
-                {
-                    throw std::runtime_error("Failed to resize DXGI SwapChain buffers");
-                }
+                THROW_IF_FAILED(m_SwapChain->ResizeBuffers(0, data.WindowSize.Width, data.WindowSize.Height, DXGI_FORMAT_R8G8B8A8_UNORM, 0));
                 CreateSwapchainResources();
             }
         default:
@@ -152,7 +140,7 @@ namespace NGN
         return true;
     }
 
-    D3D11Renderer::~D3D11Renderer()
+    D3D11::Renderer::~Renderer()
     {
         m_Context->Flush();
         DestroySwapchainResources();
@@ -160,16 +148,19 @@ namespace NGN
         m_Factory.Reset();
         m_Context.Reset();
 #ifdef NGN_DEBUG
-        if(FAILED(m_Debug->ReportLiveDeviceObjects(static_cast<D3D11_RLDO_FLAGS>(0x2 | 0x4))))
+        // 0x2 = D3D11_RLDO_DETAIL
+        // 0x4 = D3D11_RLDO_IGNORE_INTERNAL (not present in MinGW headers)
+        const HRESULT hr = m_Debug->ReportLiveDeviceObjects(static_cast<D3D11_RLDO_FLAGS>(0x2 | 0x4));
+        if(FAILED(hr))
         {
-            throw std::runtime_error("Failed to report live D3D11 objects");
+            m_Logger.Error() << "Failed to report live device objects: " << GetErrorMessage(hr) << Logger::EndLine;
         }
         m_Debug.Reset();
 #endif
         m_Device.Reset();
     }
 
-    FramePacket D3D11Renderer::StartFrame(FrameData& frameData)
+    FramePacket D3D11::Renderer::StartFrame(FrameData& frameData)
     {
         const D3D11_VIEWPORT viewport = {
             .TopLeftX = 0,
@@ -189,12 +180,19 @@ namespace NGN
         return m_CurrentFrame;
     }
 
-    void D3D11Renderer::EndFrame(FramePacket&& packet)
+    void D3D11::Renderer::EndFrame(FramePacket)
     {
         m_CurrentFrame = (m_CurrentFrame + 1) % m_FramesInFlight;
-        if(FAILED(m_SwapChain->Present(1, 0)))
+
+        const HRESULT hr = m_SwapChain->Present(m_VSync ? 1 : 0, 0);
+        if(FAILED(hr))
         {
-            throw std::runtime_error("Failed to present DXGI SwapChain");
+            m_Logger.Error() << "Failed to present swapchain" << GetErrorMessage(hr) << Logger::EndLine;
         }
+    }
+
+    void D3D11::Renderer::SetVSync(const bool enabled)
+    {
+        m_VSync = enabled;
     }
 }

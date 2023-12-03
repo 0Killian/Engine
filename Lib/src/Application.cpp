@@ -3,8 +3,6 @@
 //
 #include "Application.h"
 
-#include <iostream>
-#include <thread>
 
 #include "../public/Configuration.h"
 

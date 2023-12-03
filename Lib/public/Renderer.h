@@ -16,6 +16,6 @@ namespace NGN
         virtual ~Renderer() = default;
 
         virtual FramePacket StartFrame(FrameData& frameData) = 0;
-        virtual void EndFrame(FramePacket&& packet) = 0;
+        virtual void EndFrame(FramePacket packet) = 0;
     };
 }
