@@ -6,13 +6,15 @@
 #include <memory>
 #include <Renderer.h>
 
+#include "win.h"
 #include "Events.h"
 
 #include <wrl.h>
 #include <d3d11.h>
 #include <dxgi1_3.h>
 
-#include "../../public/Configuration.h"
+#include "ShaderProgram.h"
+#include "Configuration.h"
 
 namespace NGN::D3D11
 {
@@ -32,6 +34,9 @@ namespace NGN::D3D11
 
         void SetVSync(bool enabled);
 
+        [[nodiscard]] inline ID3D11Device* GetDevice() const { return m_Device.Get(); }
+        [[nodiscard]] inline ID3D11DeviceContext* GetContext() const { return m_Context.Get(); }
+
     protected:
         bool OnEvent(EventType type, EventData data) override;
 
@@ -43,6 +48,7 @@ namespace NGN::D3D11
         ComPtr<ID3D11DeviceContext> m_Context = nullptr;
         ComPtr<IDXGIFactory2> m_Factory = nullptr;
         ComPtr<IDXGISwapChain1> m_SwapChain = nullptr;
+        ComPtr<ID3D11InputLayout> m_InputLayout = nullptr;
 
 #ifdef NGN_DEBUG
         ComPtr<ID3D11Debug> m_Debug = nullptr;
@@ -65,6 +71,9 @@ namespace NGN::D3D11
 
         size_t m_Width = 0;
         size_t m_Height = 0;
+
+        std::unique_ptr<ShaderProgram> m_ShaderProgram = nullptr;
+        ComPtr<ID3D11Buffer> m_VertexBuffer = nullptr;
 
         void CreateSwapchainResources();
         void DestroySwapchainResources();

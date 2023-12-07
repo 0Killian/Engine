@@ -24,6 +24,7 @@ namespace NGN
 
         LogLevel LogLevel = LogLevel::Info;
         bool VSync = false;
+        String BaseAssetFolder = "./Assets";
     };
 
     inline Logger::LogChannel& operator<<(Logger::LogChannel& channel, const Configuration& config)

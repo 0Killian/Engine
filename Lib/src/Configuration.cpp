@@ -10,7 +10,8 @@ namespace NGN
         enum class ParseState
         {
             None,
-            LogLevel
+            LogLevel,
+            BaseAssetFolder
         };
 
         auto state = ParseState::None;
@@ -31,10 +32,23 @@ namespace NGN
                 {
                     this->VSync = true;
                 }
+                else if (arg == "--assets")
+                {
+                    state = ParseState::BaseAssetFolder;
+                }
+                else if (arg.StartsWith("-A="))
+                {
+                    this->BaseAssetFolder = arg.Split("=")[1];
+                }
             }
             else if (state == ParseState::LogLevel)
             {
                 this->LogLevel = LogLevel::FromConfigString(arg);
+                state = ParseState::None;
+            }
+            else if (state == ParseState::BaseAssetFolder)
+            {
+                this->BaseAssetFolder = arg;
                 state = ParseState::None;
             }
         }

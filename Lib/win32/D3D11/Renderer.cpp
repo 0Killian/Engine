@@ -11,6 +11,13 @@
 
 namespace NGN
 {
+    struct Vertex
+    {
+        DirectX::XMFLOAT3 Position;
+        DirectX::XMFLOAT3 Normal;
+        DirectX::XMFLOAT2 UV;
+    };
+
     D3D11::Renderer::Renderer(
         void* hwnd,
         Logger& logger,
@@ -94,6 +101,38 @@ namespace NGN
             &m_SwapChain));
 
         CreateSwapchainResources();
+
+        String shaderName = "Main";
+        m_ShaderProgram = std::make_unique<ShaderProgram>("Main", logger, *this, config);
+
+        constexpr D3D11_INPUT_ELEMENT_DESC vertexInputLayoutInfo[] = {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, Normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(Vertex, UV), D3D11_INPUT_PER_VERTEX_DATA, 0 }
+        };
+
+        THROW_IF_FAILED(m_Device->CreateInputLayout(
+            vertexInputLayoutInfo,
+            _countof(vertexInputLayoutInfo),
+            m_ShaderProgram->GetVertexShaderBlob()->GetBufferPointer(),
+            m_ShaderProgram->GetVertexShaderBlob()->GetBufferSize(),
+            &m_InputLayout));
+
+        constexpr Vertex vertices[] = {
+            { DirectX::XMFLOAT3{  0.0f,  0.5f, 0.0f }, DirectX::XMFLOAT3{ 0.25f, 0.39f, 0.19f }, DirectX::XMFLOAT2{ 0.5f, 0.0f } },
+            { DirectX::XMFLOAT3{  0.5f, -0.5f, 0.0f }, DirectX::XMFLOAT3{ 0.44f, 0.75f, 0.35f }, DirectX::XMFLOAT2{ 1.0f, 1.0f } },
+            { DirectX::XMFLOAT3{ -0.5f, -0.5f, 0.0f }, DirectX::XMFLOAT3{ 0.38f, 0.55f, 0.20f }, DirectX::XMFLOAT2{ 0.0f, 1.0f } }
+        };
+
+        D3D11_BUFFER_DESC bufferInfo = {};
+        bufferInfo.ByteWidth = sizeof(vertices);
+        bufferInfo.Usage = D3D11_USAGE_IMMUTABLE;
+        bufferInfo.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+        D3D11_SUBRESOURCE_DATA subresourceData = {};
+        subresourceData.pSysMem = vertices;
+
+        THROW_IF_FAILED(m_Device->CreateBuffer(&bufferInfo, &subresourceData, &m_VertexBuffer));
     }
 
     void D3D11::Renderer::CreateSwapchainResources()
@@ -176,6 +215,14 @@ namespace NGN
         m_Context->ClearRenderTargetView(m_FramePackets[m_CurrentFrame].BackBufferRTV.Get(), clearColor);
         m_Context->RSSetViewports(1, &viewport);
         m_Context->OMSetRenderTargets(1, m_FramePackets[m_CurrentFrame].BackBufferRTV.GetAddressOf(), nullptr);
+        m_Context->IASetInputLayout(m_InputLayout.Get());
+
+        const UINT stride = sizeof(Vertex);
+        const UINT offset = 0;
+        m_Context->IASetVertexBuffers(0, 1, m_VertexBuffer.GetAddressOf(), &stride, &offset);
+        m_Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        m_ShaderProgram->Bind(*this);
+        m_Context->Draw(3, 0);
 
         return m_CurrentFrame;
     }
