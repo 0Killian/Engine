@@ -1,6 +1,7 @@
 //
 // Created by Killian on 02/12/2023.
 //
+#include "D3D11/imgui_impl_dx11.h"
 #include "D3D11/Renderer.h"
 
 #include <DirectXMath.h>
@@ -89,6 +90,8 @@ namespace NGN
             &m_SwapChain));
 
         CreateSwapchainResources();
+
+        ImGui_ImplDX11_Init(m_Device.Get(), m_Context.Get());
     }
 
     void D3D11::Renderer::CreateSwapchainResources()
@@ -157,6 +160,7 @@ namespace NGN
 
     FramePacket D3D11::Renderer::StartFrame(FrameData& frameData)
     {
+        ImGui_ImplDX11_NewFrame();
         const D3D11_VIEWPORT viewport = {
             .TopLeftX = 0,
             .TopLeftY = 0,
@@ -188,6 +192,10 @@ namespace NGN
         {
             pipeline.Render();
         }
+
+        ImGui::Render();
+
+        ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
         HRESULT hr = m_SwapChain->Present(m_VSync ? 1 : 0, 0);
         if(hr == DXGI_ERROR_DEVICE_REMOVED)

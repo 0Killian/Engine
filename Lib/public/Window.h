@@ -41,6 +41,10 @@ namespace NGN
         void CreateRenderer();
         [[nodiscard]] Renderer& GetRenderer() const;
 
+        [[nodiscard]] bool ShouldClose() const;
+        [[nodiscard]] size_t GetWidth() const;
+        [[nodiscard]] size_t GetHeight() const;
+
     private:
         void* m_Inner = nullptr;
     };

@@ -14,6 +14,7 @@
 #include "Window.h"
 #include "Renderer.h"
 #include "entt.h"
+#include "GUI.h"
 
 namespace NGN
 {
@@ -44,6 +45,7 @@ namespace NGN
         Window& GetWindow() { return m_Window; }
         Renderer& GetRenderer() { return m_Window.GetRenderer(); }
         entt::registry& GetRegistry() { return m_Registry; }
+        GUI& GetGUI() { return m_GUI; }
 
     private:
         void* m_Inner = nullptr;
@@ -55,6 +57,7 @@ namespace NGN
         Platform m_Platform;
         std::unique_ptr<Input> m_Input;
         ResourceManager m_ResourceManager;
+        GUI m_GUI;
         Window m_Window;
         entt::registry m_Registry;
         bool m_ShouldExit = false;

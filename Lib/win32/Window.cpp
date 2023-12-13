@@ -11,7 +11,10 @@
 
 #include "D3D11/Renderer.h"
 
+#include "imgui_impl_win32.h"
 #include "win.h"
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace Windows
 {
@@ -147,6 +150,7 @@ namespace NGN
         bool m_LastRAltState = false;
 
         bool m_EventsEnabled = false;
+        bool m_ShouldClose = false;
         Window::Specification m_Spec;
 
         WindowInner(const Window::Specification& spec)
@@ -155,6 +159,9 @@ namespace NGN
 
         LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wp, LPARAM lp)
         {
+            if (ImGui_ImplWin32_WndProcHandler(hwnd, message, wp, lp))
+                return true;
+
             if (!m_EventsEnabled)
             {
 				return DefWindowProcA(hwnd, message, wp, lp);
@@ -169,6 +176,8 @@ namespace NGN
                 };
 
                 EventManager::Get().TriggerEvent(EventType::WINDOW_CLOSE, data);
+
+                m_ShouldClose = true;
 
                 return 0;
             }
@@ -419,6 +428,15 @@ namespace NGN
     
         m_Inner = new WindowInner(spec);
 
+        RECT windowRect = {
+            .left = 0,
+            .top = 0,
+            .right = static_cast<LONG>(spec.Width),
+            .bottom = static_cast<LONG>(spec.Height),
+        };
+
+        AdjustWindowRectEx(&windowRect, WS_OVERLAPPEDWINDOW, false, 0);
+
         auto hwnd = CreateWindowExA(
             0,
             className,
@@ -426,8 +444,8 @@ namespace NGN
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
-            static_cast<int32_t>(spec.Width),
-            static_cast<int32_t>(spec.Height),
+            static_cast<int32_t>(windowRect.right - windowRect.left),
+            static_cast<int32_t>(windowRect.bottom - windowRect.top),
             nullptr,
             nullptr,
             hInstance,
@@ -442,6 +460,8 @@ namespace NGN
         ShowWindow(hwnd, SW_SHOW);
 
         static_cast<WindowInner*>(m_Inner)->m_Handle = hwnd;
+
+        ImGui_ImplWin32_Init(hwnd);
     }
 
     uint64_t Window::GetID() const
@@ -460,8 +480,9 @@ namespace NGN
 
     void Window::PollEvents() const
     {
+        ImGui_ImplWin32_NewFrame();
         MSG msg;
-        while(PeekMessageA(&msg, static_cast<WindowInner*>(m_Inner)->m_Handle, 0, 0, PM_REMOVE))
+        while(PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE))
         {
             TranslateMessage(&msg);
             DispatchMessageA(&msg);
@@ -509,7 +530,29 @@ namespace NGN
             break;
 
         case RenderAPI::D3D11:
-            inner->m_Renderer = new D3D11::Renderer(inner->m_Handle, inner->m_Spec.Width, inner->m_Spec.Height, inner->m_Id);
+            inner->m_Renderer = new D3D11::Renderer(inner->m_Handle, GetWidth(), GetHeight(), inner->m_Id);
         }
+
+    }
+
+    bool Window::ShouldClose() const
+    {
+        return static_cast<WindowInner*>(m_Inner)->m_ShouldClose;
+    }
+
+    size_t Window::GetWidth() const
+    {
+        RECT rect;
+        GetClientRect(static_cast<WindowInner*>(m_Inner)->m_Handle, &rect);
+
+        return rect.right - rect.left;
+    }
+
+    size_t Window::GetHeight() const
+    {
+        RECT rect;
+        GetClientRect(static_cast<WindowInner*>(m_Inner)->m_Handle, &rect);
+
+        return rect.bottom - rect.top;
     }
 }

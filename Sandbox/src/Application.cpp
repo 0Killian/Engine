@@ -23,6 +23,7 @@ public:
 
     void OnUpdate() override
     {
+		m_GUI.SampleWindow();
     }
 
 protected:

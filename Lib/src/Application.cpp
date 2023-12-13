@@ -51,7 +51,8 @@ namespace NGN
         {
             angle += 0.01f;
             m_Window.PollEvents();
-            OnUpdate();
+            if (m_Window.ShouldClose())
+                m_ShouldExit = true;
             
             FrameData frameData = {
                 .constantBuffer = InstanceBufferBuilder()
@@ -82,6 +83,8 @@ namespace NGN
                 .AddElement("MODEL", VertexStructureElement::Mat4, 1)
                 .Build();
 
+            m_GUI.BeginFrame();
+
             for(auto&& [entity, transform, mesh] : m_Registry.view<Component::Transform, Component::Mesh>().each())
 			{
 				if(transform.ShouldUpdate())
@@ -94,7 +97,10 @@ namespace NGN
 				}
 			}
 
+            OnUpdate();
+
             GetRenderer().EndFrame(packet);
+            m_GUI.EndFrame();
         }
     }
 
