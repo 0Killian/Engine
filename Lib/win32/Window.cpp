@@ -5,6 +5,7 @@
 
 #include <Events.h>
 #include <optional>
+#include <stdexcept>
 
 #include <utility>
 
@@ -139,21 +140,26 @@ namespace NGN
     {
         HWND m_Handle = nullptr;
         uint64_t m_Id = s_nextId++;
-        std::shared_ptr<EventManager> m_EventManager;
-        Logger& m_Logger;
-        std::unique_ptr<Renderer> m_Renderer = nullptr;
+        Renderer* m_Renderer = nullptr;
 
         bool m_LastRCtrlState = false;
         bool m_LastRShiftState = false;
         bool m_LastRAltState = false;
 
-        explicit WindowInner(Logger& logger)
-            : m_Logger(logger)
-        {
-        }
+        bool m_EventsEnabled = false;
+        Window::Specification m_Spec;
+
+        WindowInner(const Window::Specification& spec)
+            : m_Spec(spec)
+        {}
 
         LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wp, LPARAM lp)
         {
+            if (!m_EventsEnabled)
+            {
+				return DefWindowProcA(hwnd, message, wp, lp);
+			}
+
             switch(message)
             {
             case WM_CLOSE:
@@ -162,7 +168,7 @@ namespace NGN
                     .WindowID =  m_Id,
                 };
 
-                m_EventManager->TriggerEvent(EventType::WINDOW_CLOSE, data);
+                EventManager::Get().TriggerEvent(EventType::WINDOW_CLOSE, data);
 
                 return 0;
             }
@@ -180,7 +186,7 @@ namespace NGN
                     }
                 };
 
-                m_EventManager->TriggerEvent(EventType::WINDOW_RESIZE, data);
+                EventManager::Get().TriggerEvent(EventType::WINDOW_RESIZE, data);
 
                 return 0;
             }
@@ -191,7 +197,7 @@ namespace NGN
                     .WindowID =  m_Id,
                 };
 
-                m_EventManager->TriggerEvent(EventType::WINDOW_FOCUS, data);
+                EventManager::Get().TriggerEvent(EventType::WINDOW_FOCUS, data);
 
                 return 0;
             }
@@ -202,7 +208,7 @@ namespace NGN
                     .WindowID =  m_Id,
                 };
 
-                m_EventManager->TriggerEvent(EventType::WINDOW_LOST_FOCUS, data);
+                EventManager::Get().TriggerEvent(EventType::WINDOW_LOST_FOCUS, data);
 
                 return 0;
             }
@@ -220,7 +226,7 @@ namespace NGN
                     }
                 };
 
-                m_EventManager->TriggerEvent(EventType::WINDOW_MOVED, data);
+                EventManager::Get().TriggerEvent(EventType::WINDOW_MOVED, data);
 
                 return 0;
             }
@@ -234,7 +240,7 @@ namespace NGN
                 auto key = Windows::TranslateKey(win_key, m_LastRCtrlState, m_LastRShiftState, m_LastRAltState, message == WM_KEYDOWN || message == WM_SYSKEYDOWN);
                 if(!key)
                 {
-                    m_Logger.Warning() << "Unknown key: " << win_key << Logger::EndLine;
+                    Logger::Warning() << "Unknown key: " << win_key << Logger::EndLine;
                     return DefWindowProcA(hwnd, message, wp, lp);
                 }
 
@@ -261,11 +267,11 @@ namespace NGN
 
                 if(message == WM_KEYDOWN || message == WM_SYSKEYDOWN)
                 {
-                    m_EventManager->TriggerEvent(EventType::KEY_PRESSED, data);
+                    EventManager::Get().TriggerEvent(EventType::KEY_PRESSED, data);
                 }
                 else
                 {
-                    m_EventManager->TriggerEvent(EventType::KEY_RELEASED, data);
+                    EventManager::Get().TriggerEvent(EventType::KEY_RELEASED, data);
                 }
 
                 return 0;
@@ -287,7 +293,7 @@ namespace NGN
                     //data.MouseButton = MouseButton::EXTRA;
                     return DefWindowProcA(hwnd, message, wp, lp);
 
-                m_EventManager->TriggerEvent(EventType::MOUSE_BUTTON_PRESSED, data);
+                EventManager::Get().TriggerEvent(EventType::MOUSE_BUTTON_PRESSED, data);
 
                 return 0;
             }
@@ -308,7 +314,7 @@ namespace NGN
                     //data.MouseButton = MouseButton::EXTRA;
                         return DefWindowProcA(hwnd, message, wp, lp);
 
-                m_EventManager->TriggerEvent(EventType::MOUSE_BUTTON_RELEASED, data);
+                EventManager::Get().TriggerEvent(EventType::MOUSE_BUTTON_RELEASED, data);
 
                 return 0;
             }
@@ -325,7 +331,7 @@ namespace NGN
                     }
                 };
 
-                m_EventManager->TriggerEvent(EventType::MOUSE_MOVED, data);
+                EventManager::Get().TriggerEvent(EventType::MOUSE_MOVED, data);
 
                 return 0;
             }
@@ -342,7 +348,7 @@ namespace NGN
                     }
                 };
 
-                m_EventManager->TriggerEvent(EventType::MOUSE_SCROLLED, data);
+                EventManager::Get().TriggerEvent(EventType::MOUSE_SCROLLED, data);
 
                 return 0;
             }
@@ -352,7 +358,6 @@ namespace NGN
             }
         }
 
-        // ReSharper disable once CppParameterMayBeConst
         static LRESULT CALLBACK WndProcStub(HWND hwnd, const UINT message, const WPARAM wp, const LPARAM lp)
         {
             const auto window = reinterpret_cast<WindowInner*>(GetWindowLongPtrA(hwnd, GWLP_USERDATA));
@@ -360,7 +365,6 @@ namespace NGN
         }
     };
 
-    // ReSharper disable once CppParameterMayBeConst
     LRESULT CALLBACK WndProcSetup(HWND hwnd, const UINT message, const WPARAM wp, const LPARAM lp)
     {
         if(message == WM_NCCREATE)
@@ -403,7 +407,7 @@ namespace NGN
         s_ClassRegistered = true;
     }
 
-    Window::Window(const Specification& spec, const std::shared_ptr<EventManager>& manager, Logger& logger, Configuration& config)
+    Window::Window(const Specification& spec)
     {
         if(!s_ClassRegistered)
         {
@@ -412,9 +416,8 @@ namespace NGN
 
         const auto hInstance = GetModuleHandleA(nullptr);
         const auto className = "NGNWindowClass";
-
-        m_Inner = new WindowInner(logger);
-        static_cast<WindowInner*>(m_Inner)->m_EventManager = manager;
+    
+        m_Inner = new WindowInner(spec);
 
         auto hwnd = CreateWindowExA(
             0,
@@ -439,15 +442,6 @@ namespace NGN
         ShowWindow(hwnd, SW_SHOW);
 
         static_cast<WindowInner*>(m_Inner)->m_Handle = hwnd;
-
-        switch(spec.API)
-        {
-        case RenderAPI::NONE:
-            break;
-
-        case RenderAPI::D3D11:
-            static_cast<WindowInner*>(m_Inner)->m_Renderer = std::make_unique<D3D11::Renderer>(hwnd, logger, manager, config, spec.Width, spec.Height, static_cast<WindowInner*>(m_Inner)->m_Id);
-        }
     }
 
     uint64_t Window::GetID() const
@@ -494,5 +488,28 @@ namespace NGN
     Renderer& Window::GetRenderer() const
     {
         return *static_cast<WindowInner*>(m_Inner)->m_Renderer;
+    }
+
+    void Window::DisableEvents()
+    {
+		static_cast<WindowInner*>(m_Inner)->m_EventsEnabled = false;
+	}
+
+    void Window::EnableEvents()
+    {
+		static_cast<WindowInner*>(m_Inner)->m_EventsEnabled = true;
+	}
+
+    void Window::CreateRenderer()
+    {
+        auto inner = static_cast<WindowInner*>(m_Inner);
+        switch (inner->m_Spec.API)
+        {
+        case RenderAPI::NONE:
+            break;
+
+        case RenderAPI::D3D11:
+            inner->m_Renderer = new D3D11::Renderer(inner->m_Handle, inner->m_Spec.Width, inner->m_Spec.Height, inner->m_Id);
+        }
     }
 }

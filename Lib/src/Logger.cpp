@@ -1,9 +1,10 @@
 //
 // Created by Killian on 28/11/2023.
 //
-#include "../public/Logger.h"
-
+#include "Logger.h"
+#include "Application.h"
 #include "Containers/String.h"
+
 #include <ostream>
 #include <chrono>
 #include <iostream>
@@ -11,6 +12,11 @@
 
 namespace NGN
 {
+    Logger& Logger::Get()
+    {
+        return Application::Get().GetLogger();
+    }
+
     LogLevel LogLevel::FromConfigString(const String& str)
     {
         if (str == "trace")
@@ -154,26 +160,35 @@ namespace NGN
         switch(static_cast<LogLevel::Value>(maxLevel))
         {
         case LogLevel::Trace:
-            this->m_Trace = std::make_unique<LogChannel>("TRACE");
+            this->m_Trace = new LogChannel("TRACE");
 
         case LogLevel::Debug:
-            this->m_Debug = std::make_unique<LogChannel>("DEBUG");
+            this->m_Debug = new LogChannel("DEBUG");
 
         case LogLevel::Info:
-            this->m_Info = std::make_unique<LogChannel>("INFO");
+            this->m_Info = new LogChannel("INFO");
 
         case LogLevel::Warning:
-            this->m_Warning = std::make_unique<LogChannel>("WARNING");
+            this->m_Warning = new LogChannel("WARNING");
 
         case LogLevel::Error:
-            this->m_Error = std::make_unique<LogChannel>("ERROR");
+            this->m_Error = new LogChannel("ERROR");
 
         case LogLevel::Critical:
-            this->m_Critical = std::make_unique<LogChannel>("CRITICAL");
+            this->m_Critical = new LogChannel("CRITICAL");
             break;
 
         default: break;
         }
     }
 
+    Logger::~Logger()
+    {
+        delete m_Trace;
+        delete m_Debug;
+        delete m_Info;
+        delete m_Warning;
+        delete m_Error;
+        delete m_Critical;
+    }
 }

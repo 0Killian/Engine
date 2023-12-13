@@ -1,20 +1,24 @@
 struct VSInput
 {
     float3 position : POSITION;
-    float3 normal : NORMAL;
-    float2 uv : TEXCOORD0;
+    
+    float4x4 model : INSTANCE_MODEL;
 };
 
 struct VSOutput
 {
     float4 position : SV_POSITION;
-    float3 color: COLOR0;
+};
+
+cbuffer ConstantBuffer : register(b0)
+{
+    float4x4 View;
+    float4x4 Projection;
 };
 
 VSOutput main(VSInput input)
 {
     VSOutput output;
-    output.position = float4(input.position, 1.0f);
-    output.color = input.normal;
+    output.position = mul(mul(float4(input.position, 1.0f), input.model), mul(View, Projection));
     return output;
 }

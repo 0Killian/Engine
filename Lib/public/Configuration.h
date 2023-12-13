@@ -20,11 +20,16 @@ namespace NGN
     public:
         explicit Configuration(const List<String>& args);
 
+        static Configuration& Get();
+
         static_assert(ConfigValue<LogLevel>);
 
         LogLevel LogLevel = LogLevel::Info;
         bool VSync = false;
         String BaseAssetFolder = "./Assets";
+        String WindowTitle = "NGN";
+        uint32_t WindowWidth = 1280;
+        uint32_t WindowHeight = 720;
     };
 
     inline Logger::LogChannel& operator<<(Logger::LogChannel& channel, const Configuration& config)

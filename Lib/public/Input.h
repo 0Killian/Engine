@@ -15,20 +15,22 @@ namespace NGN
     {
         // TODO: Support for gamepads
     public:
-        explicit Input(std::shared_ptr<EventManager> eventManager);
+        explicit Input();
 
-        bool IsKeyPressed(Key key);
-        bool IsMouseButtonPressed(MouseButton button);
-        [[nodiscard]] float GetMouseX() const;
-        [[nodiscard]] float GetMouseY() const;
-        [[nodiscard]] float GetMouseScrollX() const;
-        [[nodiscard]] float GetMouseScrollY() const;
-        [[nodiscard]] float GetMouseDeltaX() const;
-        [[nodiscard]] float GetMouseDeltaY() const;
+        [[nodiscard]] static bool IsKeyPressed(Key key);
+        [[nodiscard]] static bool IsMouseButtonPressed(MouseButton button);
+        [[nodiscard]] static float GetMouseX();
+        [[nodiscard]] static float GetMouseY();
+        [[nodiscard]] static float GetMouseScrollX();
+        [[nodiscard]] static float GetMouseScrollY();
+        [[nodiscard]] static float GetMouseDeltaX();
+        [[nodiscard]] static float GetMouseDeltaY();
 
-        void StartTyping();
-        void StopTyping();
-        [[nodiscard]] String& GetTextBuffer();
+        static void StartTyping();
+        static void StopTyping();
+        [[nodiscard]] static String& GetTextBuffer();
+
+        static Input& Get();
 
     protected:
         bool OnEvent(EventType type, EventData data) override;

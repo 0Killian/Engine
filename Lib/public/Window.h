@@ -3,8 +3,8 @@
 //
 #pragma once
 #include <cstdint>
-#include <Events.h>
 
+#include "Events.h"
 #include "Configuration.h"
 #include "RenderAPI.h"
 #include "Renderer.h"
@@ -23,7 +23,7 @@ namespace NGN
             RenderAPI API = RenderAPI::NONE;
         };
 
-        explicit Window(const Specification& spec, const std::shared_ptr<EventManager>&, Logger& logger, Configuration& config);
+        explicit Window(const Specification& spec);
         ~Window();
 
         Window(Window&&) noexcept;
@@ -32,9 +32,13 @@ namespace NGN
         Window(Window&) = delete;
         Window& operator=(Window&) = delete;
 
+        void DisableEvents();
+        void EnableEvents();
+
         void PollEvents() const;
         [[nodiscard]] uint64_t GetID() const;
 
+        void CreateRenderer();
         [[nodiscard]] Renderer& GetRenderer() const;
 
     private:

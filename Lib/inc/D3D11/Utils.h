@@ -32,8 +32,8 @@ namespace NGN::D3D11
             return String("Unknown error: ") + ToHex(hr);
         }
 
-        String result(msg);
+        const String result(msg);
         LocalFree(msg);
-        return result;
+        return result + " (" + ToHex(hr) + ")";
     }
 }

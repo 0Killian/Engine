@@ -10,110 +10,92 @@
 #include "Engine.h"
 #include "Renderer.h"
 
-class Sandbox;
-
-class WindowListener final : public NGN::EventListener
-{
-public:
-    WindowListener(std::shared_ptr<NGN::EventManager> eventManager, std::optional<NGN::Window>& window1, std::optional<NGN::Window>& window2, NGN::Logger& logger)
-        : EventListener({
-            NGN::EventType::WINDOW_CLOSE,
-            NGN::EventType::WINDOW_RESIZE,
-            NGN::EventType::WINDOW_FOCUS,
-            NGN::EventType::WINDOW_LOST_FOCUS,
-            NGN::EventType::WINDOW_MOVED,
-            NGN::EventType::KEY_PRESSED,
-            NGN::EventType::KEY_RELEASED,
-        }, std::move(eventManager))
-        , m_Window1(window1)
-        , m_Window2(window2)
-        , m_Logger(logger)
-    {}
-
-    bool OnEvent(const NGN::EventType type, const NGN::EventData data) override
-    {
-        if(type == NGN::EventType::KEY_PRESSED)
-            m_Logger.Info() << "Key Pressed: " << ToString(data.Key) << NGN::Logger::EndLine;
-        else if(type == NGN::EventType::KEY_RELEASED)
-            m_Logger.Info() << "Key Released: " << ToString(data.Key) << NGN::Logger::EndLine;
-        else if(m_Window1.has_value() && data.WindowID == m_Window1->GetID())
-        {
-            if(type == NGN::EventType::WINDOW_CLOSE)
-                m_Window1.reset();
-            else if(type == NGN::EventType::WINDOW_FOCUS)
-                m_Logger.Info() << "Window 1 Focused" << NGN::Logger::EndLine;
-            else if(type == NGN::EventType::WINDOW_LOST_FOCUS)
-                m_Logger.Info() << "Window 1 Lost Focus" << NGN::Logger::EndLine;
-            else if(type == NGN::EventType::WINDOW_MOVED)
-                m_Logger.Info() << "Window 1 Moved to " << data.WindowMoved.X << "x" << data.WindowMoved.Y << NGN::Logger::EndLine;
-            else if(type == NGN::EventType::WINDOW_RESIZE)
-                m_Logger.Info() << "Window 1 Resized to " << data.WindowSize.Width << "x" << data.WindowSize.Height << NGN::Logger::EndLine;
-        }
-        else if(m_Window2.has_value() && data.WindowID == m_Window2->GetID())
-        {
-            if(type == NGN::EventType::WINDOW_CLOSE)
-                m_Window2.reset();
-            else if(type == NGN::EventType::WINDOW_FOCUS)
-                m_Logger.Info() << "Window 2 Focused" << NGN::Logger::EndLine;
-            else if(type == NGN::EventType::WINDOW_LOST_FOCUS)
-                m_Logger.Info() << "Window 2 Lost Focus" << NGN::Logger::EndLine;
-            else if(type == NGN::EventType::WINDOW_MOVED)
-                m_Logger.Info() << "Window 2 Moved to " << data.WindowMoved.X << "x" << data.WindowMoved.Y << NGN::Logger::EndLine;
-            else if(type == NGN::EventType::WINDOW_RESIZE)
-                m_Logger.Info() << "Window 2 Resized to " << data.WindowSize.Width << "x" << data.WindowSize.Height << NGN::Logger::EndLine;
-        }
-
-        return false;
-    }
-
-private:
-    std::optional<NGN::Window>& m_Window1;
-    std::optional<NGN::Window>& m_Window2;
-    NGN::Logger& m_Logger;
-};
+#include <fstream>
+#include <Components.h>
 
 class Sandbox final : public NGN::Application
 {
 public:
     explicit Sandbox(const NGN::List<NGN::String>& args)
         : Application(args)
-        , m_Window1(NGN::Window(NGN::Window::Specification { .Title = "Window 1", .Width = 800, .Height = 600, .API = NGN::RenderAPI::D3D11 }, m_EventManager, m_Logger, m_Configuration))
-        , m_Window2(NGN::Window(NGN::Window::Specification { .Title = "Window 2", .Width = 400, .Height = 600 }, m_EventManager, m_Logger, m_Configuration))
-        , m_Renderer(&m_Window1->GetRenderer())
-        , m_WindowListener(m_EventManager, m_Window1, m_Window2, m_Logger)
     {
-        if(m_Renderer == nullptr)
-            throw std::runtime_error("Renderer was not created");
-        m_Logger.Info() << "Sandbox Created" << NGN::Logger::EndLine;
     }
 
     void OnUpdate() override
     {
-        if(m_Window1)
-            m_Window1->PollEvents();
-
-        if(m_Window2)
-            m_Window2->PollEvents();
-
-        if(!m_Window1 && !m_Window2)
-            Exit();
-
-        if(m_Window1)
-        {
-            NGN::FrameData data;
-            const NGN::FramePacket packet = m_Renderer->StartFrame(data);
-            m_Renderer->EndFrame(packet);
-        }
     }
 
-private:
-    std::optional<NGN::Window> m_Window1;
-    std::optional<NGN::Window> m_Window2;
-    NGN::Renderer* m_Renderer = nullptr;
+protected:
+	void InitInner() override
+	{
+		std::ifstream vertexShaderFile("Assets/Shaders/Main.vert.hlsl", std::ios::ate);
+		std::ifstream pixelShaderFile("Assets/Shaders/Main.pixel.hlsl", std::ios::ate);
 
-    WindowListener m_WindowListener;
+		if (!vertexShaderFile.is_open() || !pixelShaderFile.is_open())
+		{
+			throw std::runtime_error("Failed to open shader files");
+			return;
+		}
 
-    friend WindowListener;
+		// Read all the file into a string
+		size_t vertexShaderFileSize = (size_t)vertexShaderFile.tellg();
+		size_t pixelShaderFileSize = (size_t)pixelShaderFile.tellg();
+
+		vertexShaderFile.seekg(0);
+		pixelShaderFile.seekg(0);
+
+		NGN::String vertexShaderSource;
+		NGN::String pixelShaderSource;
+		vertexShaderSource.Resize(vertexShaderFileSize);
+		pixelShaderSource.Resize(pixelShaderFileSize);
+
+		vertexShaderFile.read(vertexShaderSource.GetData(), vertexShaderFileSize);
+		pixelShaderFile.read(pixelShaderSource.GetData(), pixelShaderFileSize);
+
+		vertexShaderFile.close();
+		pixelShaderFile.close();
+
+		NGN::ResourceManager::Get().AddPipeline("Main", vertexShaderSource, pixelShaderSource);
+		NGN::Pipeline& pipeline = NGN::ResourceManager::Get().GetPipeline("Main");
+
+		auto vbuffer = NGN::VertexBufferBuilder()
+			.AddElement("POSITION", NGN::VertexStructureElement::Float3, 1)
+			.Build();
+
+		// Cube
+		vbuffer.AddVertex(8);
+		
+		vbuffer.SetElement(0, "POSITION", NGN::Math::Vec3<float>(-1.0f, -1.0f, -1.0f));
+		vbuffer.SetElement(1, "POSITION", NGN::Math::Vec3<float>( 1.0f, -1.0f, -1.0f));
+		vbuffer.SetElement(2, "POSITION", NGN::Math::Vec3<float>(-1.0f,  1.0f, -1.0f));
+		vbuffer.SetElement(3, "POSITION", NGN::Math::Vec3<float>( 1.0f,  1.0f, -1.0f));
+		vbuffer.SetElement(4, "POSITION", NGN::Math::Vec3<float>(-1.0f, -1.0f,  1.0f));
+		vbuffer.SetElement(5, "POSITION", NGN::Math::Vec3<float>( 1.0f, -1.0f,  1.0f));
+		vbuffer.SetElement(6, "POSITION", NGN::Math::Vec3<float>(-1.0f,  1.0f,  1.0f));
+		vbuffer.SetElement(7, "POSITION", NGN::Math::Vec3<float>( 1.0f,  1.0f,  1.0f));
+
+		auto ibuffer = NGN::List<uint32_t>({
+			1, 0, 2, 1, 2, 3,
+			4, 5, 6, 5, 7, 6,
+			0, 4, 6, 0, 6, 2,
+			1, 3, 7, 1, 7, 5,
+			0, 1, 5, 0, 5, 4,
+			2, 6, 7, 2, 7, 3
+		});
+
+		NGN::ResourceManager::Get().AddMesh("Square", vbuffer, ibuffer, pipeline);
+
+		entt::entity entity1 = m_Registry.create();
+		m_Registry.emplace<NGN::Component::Transform>(entity1);
+		m_Registry.emplace<NGN::Component::Mesh>(entity1, "Square");
+
+		/*entt::entity entity2 = m_Registry.create();
+		m_Registry.emplace<NGN::Component::Transform>(entity2,
+			NGN::Math::Vec3<float>(0.0f, -0.5f, 0.0f),
+			NGN::Math::Vec3<float>(0.0f, 0.0f, 45.0f),
+			NGN::Math::Vec3<float>(1.0f, 1.0f, 1.0f));
+		m_Registry.emplace<NGN::Component::Mesh>(entity2, "Square");*/
+	}
 };
 
 NGN_ENTRY_POINT(Sandbox)

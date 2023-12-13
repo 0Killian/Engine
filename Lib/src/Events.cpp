@@ -7,11 +7,16 @@
 
 #include "Logger.h"
 #include "Containers/HashMap.h"
+#include "Application.h"
 
 namespace NGN
 {
-    EventManager::EventManager(Logger& logger)
-        : m_Logger(logger)
+    EventManager& EventManager::Get()
+	{
+        return Application::Get().GetEventManager();
+	}
+
+    EventManager::EventManager()
     {
         for(auto type = static_cast<EventType>(0); type < EventType::_COUNT; type = static_cast<EventType>(static_cast<int>(type) + 1))
         {
@@ -35,7 +40,7 @@ namespace NGN
             {
                 if (m_Listeners[i] == nullptr)
                 {
-                    m_NextFree = static_cast<ssize_t>(i);
+                    m_NextFree = static_cast<int64_t>(i);
                     break;
                 }
             }
@@ -49,14 +54,14 @@ namespace NGN
         return id;
     }
 
-    void EventManager::RemoveListener(const size_t id)
+    void EventManager::RemoveListener(size_t id)
     {
         if(id >= m_Listeners.Size())
             return;
 
-        if(m_NextFree == -1 || id < m_NextFree)
+        if(m_NextFree == -1 || static_cast<int64_t>(id) < m_NextFree)
         {
-            m_NextFree = static_cast<ssize_t>(id);
+            m_NextFree = static_cast<int64_t>(id);
         }
 
         m_Listeners[id] = nullptr;
@@ -74,7 +79,7 @@ namespace NGN
         }
     }
 
-    void EventManager::MoveListener(const size_t id, EventListener* listener)
+    void EventManager::MoveListener(size_t id, EventListener* listener)
     {
         if(id >= m_Listeners.Size())
             return;
@@ -82,9 +87,9 @@ namespace NGN
         m_Listeners[id] = listener;
     }
 
-    void EventManager::TriggerEvent(EventType type, const EventData data)
+    void EventManager::TriggerEvent(EventType type, EventData data)
     {
-        m_Logger.Debug() << "Triggering event " << static_cast<int>(type) << Logger::EndLine;
+        Logger::Debug() << "Triggering event " << static_cast<int>(type) << Logger::EndLine;
 
         for(const size_t id : m_ListenerMap[type])
         {
@@ -98,30 +103,28 @@ namespace NGN
         }
     }
 
-    EventListener::EventListener(const List<EventType>& types, std::shared_ptr<EventManager> manager)
-        : m_Manager(std::move(manager))
+    EventListener::EventListener(const List<EventType>& types)
     {
-        m_Id = m_Manager->AddListener(this, types);
+        m_Id = EventManager::Get().AddListener(this, types);
     }
 
     EventListener::~EventListener()
     {
-        if(m_Manager != nullptr)
-            m_Manager->RemoveListener(m_Id);
+        if(m_Id != static_cast<size_t>(-1))
+            EventManager::Get().RemoveListener(m_Id);
     }
 
     EventListener::EventListener(EventListener&& other) noexcept
-        : m_Manager(std::move(other.m_Manager))
-        , m_Id(other.m_Id)
+        : m_Id(other.m_Id)
     {
         if(this == &other)
         {
             return;
         }
 
-        other.m_Id = -1;
+        other.m_Id = static_cast<size_t>(-1);
 
-        m_Manager->MoveListener(m_Id, this);
+        EventManager::Get().MoveListener(m_Id, this);
     }
 
     EventListener& EventListener::operator=(EventListener&& other) noexcept
@@ -132,11 +135,10 @@ namespace NGN
         }
 
         m_Id = other.m_Id;
-        m_Manager = std::move(other.m_Manager);
 
-        other.m_Id = -1;
+        other.m_Id = static_cast<size_t>(-1);
 
-        m_Manager->MoveListener(m_Id, this);
+        EventManager::Get().MoveListener(m_Id, this);
 
         return *this;
     }

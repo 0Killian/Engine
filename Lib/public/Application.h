@@ -3,13 +3,17 @@
 //
 #pragma once
 
-#include <Platform.h>
-
+#include "Engine.h"
+#include "Platform.h"
 #include "Configuration.h"
 #include "Events.h"
 #include "Input.h"
 #include "Logger.h"
 #include "Containers/String.h"
+#include "ResourceManager.h"
+#include "Window.h"
+#include "Renderer.h"
+#include "entt.h"
 
 namespace NGN
 {
@@ -19,11 +23,27 @@ namespace NGN
         explicit Application(const List<String>& args);
         virtual ~Application();
 
+        void Init();
         void Run();
 
         virtual void OnUpdate() = 0;
 
         void Exit();
+
+        template <typename T>
+        static void Create(const List<String>& args) { s_Instance = new T(args); }
+        static Application& Get() { return *s_Instance; }
+        static void Destroy() { delete s_Instance; }
+
+        Configuration& GetConfiguration() { return m_Configuration; }
+		Logger& GetLogger() { return m_Logger; }
+		EventManager& GetEventManager() { return *m_EventManager; }
+		Platform& GetPlatform() { return m_Platform; }
+		Input& GetInput() { return *m_Input; }
+        ResourceManager& GetResourceManager() { return m_ResourceManager; }
+        Window& GetWindow() { return m_Window; }
+        Renderer& GetRenderer() { return m_Window.GetRenderer(); }
+        entt::registry& GetRegistry() { return m_Registry; }
 
     private:
         void* m_Inner = nullptr;
@@ -31,9 +51,16 @@ namespace NGN
     protected:
         Configuration m_Configuration;
         Logger m_Logger;
-        std::shared_ptr<EventManager> m_EventManager = std::make_shared<EventManager>(m_Logger);
+        EventManager* m_EventManager;
         Platform m_Platform;
-        Input m_Input;
+        std::unique_ptr<Input> m_Input;
+        ResourceManager m_ResourceManager;
+        Window m_Window;
+        entt::registry m_Registry;
         bool m_ShouldExit = false;
+
+        static Application* s_Instance;
+
+        virtual void InitInner() = 0;
     };
 }

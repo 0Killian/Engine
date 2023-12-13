@@ -22,12 +22,9 @@ namespace NGN
         };
 
         LogLevel() = default;
-        // ReSharper disable once CppNonExplicitConvertingConstructor
-        constexpr LogLevel(const Value value) : m_Value(value) {} // NOLINT(*-explicit-constructor)
+        constexpr LogLevel(const Value value) : m_Value(value) {}
 
-        // ReSharper disable once CppNonExplicitConversionOperator
-        constexpr operator Value() const { return m_Value; } // NOLINT(*-explicit-constructor)
-        // ReSharper disable once CppNonExplicitConversionOperator
+        constexpr operator Value() const { return m_Value; }
         constexpr operator bool() const = delete;
 
         static LogLevel FromConfigString(const class String& str);
@@ -85,20 +82,23 @@ namespace NGN
         };
 
         explicit Logger(LogLevel maxLevel);
+        ~Logger();
 
-        [[nodiscard]] LogChannel& Trace() const { return *m_Trace; }
-        [[nodiscard]] LogChannel& Debug() const { return *m_Debug; }
-        [[nodiscard]] LogChannel& Info() const { return *m_Info; }
-        [[nodiscard]] LogChannel& Warning() const { return *m_Warning; }
-        [[nodiscard]] LogChannel& Error() const { return *m_Error; }
-        [[nodiscard]] LogChannel& Critical() const { return *m_Critical; }
+        [[nodiscard]] static LogChannel& Trace() { return *Get().m_Trace; }
+        [[nodiscard]] static LogChannel& Debug() { return *Get().m_Debug; }
+        [[nodiscard]] static LogChannel& Info() { return *Get().m_Info; }
+        [[nodiscard]] static LogChannel& Warning() { return *Get().m_Warning; }
+        [[nodiscard]] static LogChannel& Error() { return *Get().m_Error; }
+        [[nodiscard]] static LogChannel& Critical() { return *Get().m_Critical; }
+
+        static Logger& Get();
 
     private:
-        std::unique_ptr<LogChannel> m_Trace = std::make_unique<DisabledLogChannel>("");
-        std::unique_ptr<LogChannel> m_Debug = std::make_unique<DisabledLogChannel>("");
-        std::unique_ptr<LogChannel> m_Info = std::make_unique<DisabledLogChannel>("");
-        std::unique_ptr<LogChannel> m_Warning = std::make_unique<DisabledLogChannel>("");
-        std::unique_ptr<LogChannel> m_Error = std::make_unique<DisabledLogChannel>("");
-        std::unique_ptr<LogChannel> m_Critical = std::make_unique<DisabledLogChannel>("");
+        LogChannel* m_Trace = new DisabledLogChannel("");
+        LogChannel* m_Debug = new DisabledLogChannel("");
+        LogChannel* m_Info = new DisabledLogChannel("");
+        LogChannel* m_Warning = new DisabledLogChannel("");
+        LogChannel* m_Error = new DisabledLogChannel("");
+        LogChannel* m_Critical = new DisabledLogChannel("");
     };
 }

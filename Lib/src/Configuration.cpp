@@ -1,10 +1,16 @@
 //
 // Created by Killian on 28/11/2023.
 //
-#include "../public/Configuration.h"
+#include "Configuration.h"
+#include "Application.h"
 
 namespace NGN
 {
+    Configuration& Configuration::Get()
+	{
+		return Application::Get().GetConfiguration();
+	}
+
     Configuration::Configuration(const List<String>& args)
     {
         enum class ParseState

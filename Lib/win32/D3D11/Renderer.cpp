@@ -6,34 +6,22 @@
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
 #include <d3d11sdklayers.h>
+#include <stdexcept>
 
 #include "D3D11/Utils.h"
 
 namespace NGN
 {
-    struct Vertex
-    {
-        DirectX::XMFLOAT3 Position;
-        DirectX::XMFLOAT3 Normal;
-        DirectX::XMFLOAT2 UV;
-    };
-
     D3D11::Renderer::Renderer(
         void* hwnd,
-        Logger& logger,
-        std::shared_ptr<EventManager>
-        eventManager,
-        const Configuration& config,
         const size_t width,
         const size_t height,
         const size_t id)
         : EventListener({
             EventType::WINDOW_RESIZE
-        }, eventManager)
-        , m_Logger(logger)
-        , m_EventManager(std::move(eventManager))
+        })
         , m_WindowID(id)
-        , m_VSync(config.VSync)
+        , m_VSync(Configuration::Get().VSync)
     {
         THROW_IF_FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&m_Factory)));
 
@@ -101,38 +89,6 @@ namespace NGN
             &m_SwapChain));
 
         CreateSwapchainResources();
-
-        String shaderName = "Main";
-        m_ShaderProgram = std::make_unique<ShaderProgram>("Main", logger, *this, config);
-
-        constexpr D3D11_INPUT_ELEMENT_DESC vertexInputLayoutInfo[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, Normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(Vertex, UV), D3D11_INPUT_PER_VERTEX_DATA, 0 }
-        };
-
-        THROW_IF_FAILED(m_Device->CreateInputLayout(
-            vertexInputLayoutInfo,
-            _countof(vertexInputLayoutInfo),
-            m_ShaderProgram->GetVertexShaderBlob()->GetBufferPointer(),
-            m_ShaderProgram->GetVertexShaderBlob()->GetBufferSize(),
-            &m_InputLayout));
-
-        constexpr Vertex vertices[] = {
-            { DirectX::XMFLOAT3{  0.0f,  0.5f, 0.0f }, DirectX::XMFLOAT3{ 0.25f, 0.39f, 0.19f }, DirectX::XMFLOAT2{ 0.5f, 0.0f } },
-            { DirectX::XMFLOAT3{  0.5f, -0.5f, 0.0f }, DirectX::XMFLOAT3{ 0.44f, 0.75f, 0.35f }, DirectX::XMFLOAT2{ 1.0f, 1.0f } },
-            { DirectX::XMFLOAT3{ -0.5f, -0.5f, 0.0f }, DirectX::XMFLOAT3{ 0.38f, 0.55f, 0.20f }, DirectX::XMFLOAT2{ 0.0f, 1.0f } }
-        };
-
-        D3D11_BUFFER_DESC bufferInfo = {};
-        bufferInfo.ByteWidth = sizeof(vertices);
-        bufferInfo.Usage = D3D11_USAGE_IMMUTABLE;
-        bufferInfo.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-        D3D11_SUBRESOURCE_DATA subresourceData = {};
-        subresourceData.pSysMem = vertices;
-
-        THROW_IF_FAILED(m_Device->CreateBuffer(&bufferInfo, &subresourceData, &m_VertexBuffer));
     }
 
     void D3D11::Renderer::CreateSwapchainResources()
@@ -192,7 +148,7 @@ namespace NGN
         const HRESULT hr = m_Debug->ReportLiveDeviceObjects(static_cast<D3D11_RLDO_FLAGS>(0x2 | 0x4));
         if(FAILED(hr))
         {
-            m_Logger.Error() << "Failed to report live device objects: " << GetErrorMessage(hr) << Logger::EndLine;
+            Logger::Error() << "Failed to report live device objects: " << GetErrorMessage(hr) << Logger::EndLine;
         }
         m_Debug.Reset();
 #endif
@@ -215,14 +171,11 @@ namespace NGN
         m_Context->ClearRenderTargetView(m_FramePackets[m_CurrentFrame].BackBufferRTV.Get(), clearColor);
         m_Context->RSSetViewports(1, &viewport);
         m_Context->OMSetRenderTargets(1, m_FramePackets[m_CurrentFrame].BackBufferRTV.GetAddressOf(), nullptr);
-        m_Context->IASetInputLayout(m_InputLayout.Get());
 
-        const UINT stride = sizeof(Vertex);
-        const UINT offset = 0;
-        m_Context->IASetVertexBuffers(0, 1, m_VertexBuffer.GetAddressOf(), &stride, &offset);
-        m_Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        m_ShaderProgram->Bind(*this);
-        m_Context->Draw(3, 0);
+        for (auto& pipeline : m_Pipelines)
+        {
+            pipeline.UpdateConstantBuffer(frameData.constantBuffer);
+		}
 
         return m_CurrentFrame;
     }
@@ -231,15 +184,73 @@ namespace NGN
     {
         m_CurrentFrame = (m_CurrentFrame + 1) % m_FramesInFlight;
 
-        const HRESULT hr = m_SwapChain->Present(m_VSync ? 1 : 0, 0);
+        for (auto& pipeline : m_Pipelines)
+        {
+            pipeline.Render();
+        }
+
+        HRESULT hr = m_SwapChain->Present(m_VSync ? 1 : 0, 0);
+        if(hr == DXGI_ERROR_DEVICE_REMOVED)
+        {
+            hr = m_Device->GetDeviceRemovedReason();
+            Logger::Error() << "Device removed: " << ToHex(hr) << Logger::EndLine;
+            __debugbreak();
+        }
         if(FAILED(hr))
         {
-            m_Logger.Error() << "Failed to present swapchain" << GetErrorMessage(hr) << Logger::EndLine;
+            Logger::Error() << "Failed to present swapchain" << GetErrorMessage(hr) << Logger::EndLine;
         }
     }
 
     void D3D11::Renderer::SetVSync(const bool enabled)
     {
         m_VSync = enabled;
+    }
+
+
+
+    // Resources
+    size_t D3D11::Renderer::CreatePipeline(const String& vertexSource, const String& pixelSource)
+    {
+        m_Pipelines.EmplaceBack(vertexSource, pixelSource);
+        m_PipelineMap.Insert(m_NextPipelineID, m_Pipelines.Size() - 1);
+        return m_NextPipelineID++;
+    }
+
+    size_t D3D11::Renderer::CreatePipeline(const List<uint8_t>& compiledVertex, const List<uint8_t>& compiledPixel)
+    {
+        m_Pipelines.EmplaceBack(compiledVertex, compiledPixel);
+        m_PipelineMap.Insert(m_NextPipelineID, m_Pipelines.Size() - 1);
+        return m_NextPipelineID++;
+    }
+
+    void D3D11::Renderer::UpdateMeshInPipeline(size_t RendererID, size_t meshID, String name, class Mesh& meshData)
+    {
+        if(!m_PipelineMap.ContainsKey(RendererID))
+		{
+			throw std::runtime_error("Invalid RendererID");
+		}
+
+		m_Pipelines[m_PipelineMap[RendererID]].UpdateMesh(meshID, name, meshData);
+    }
+
+    size_t D3D11::Renderer::AddMeshInstanceInPipeline(size_t RendererID, size_t meshID, InstanceBuffer buffer)
+    {
+        if (!m_PipelineMap.ContainsKey(RendererID))
+        {
+            throw std::runtime_error("Invalid RendererID");
+        }
+
+        return m_Pipelines[m_PipelineMap[RendererID]].AddInstance(meshID, buffer);
+    }
+
+    void D3D11::Renderer::UpdateMeshInstanceInPipeline(size_t RendererID, size_t meshID, size_t instanceID, InstanceBuffer buffer)
+    {
+        if (!m_PipelineMap.ContainsKey(RendererID))
+        {
+			throw std::runtime_error("Invalid RendererID");
+		}
+
+		m_Pipelines[m_PipelineMap[RendererID]].UpdateInstance(meshID, instanceID, buffer);
     }
 }

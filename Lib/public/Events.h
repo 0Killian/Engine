@@ -79,7 +79,7 @@ namespace NGN
     class EventListener
     {
     public:
-        explicit EventListener(const List<EventType>& types, std::shared_ptr<EventManager> manager);
+        explicit EventListener(const List<EventType>& types);
         virtual ~EventListener();
 
         EventListener(EventListener&&) noexcept;
@@ -90,9 +90,6 @@ namespace NGN
 
         virtual bool OnEvent(EventType type, EventData data) = 0;
 
-    protected:
-        std::shared_ptr<EventManager> m_Manager;
-
     private:
         size_t m_Id;
     };
@@ -100,9 +97,11 @@ namespace NGN
     class EventManager
     {
     public:
-        explicit EventManager(Logger& logger);
+        explicit EventManager();
 
         void TriggerEvent(EventType type, EventData data);
+
+        static EventManager& Get();
 
     private:
         size_t AddListener(EventListener* listener, const List<EventType>& types);
@@ -111,8 +110,7 @@ namespace NGN
 
         List<EventListener*> m_Listeners;
         HashMap<EventType, List<size_t>> m_ListenerMap;
-        ssize_t m_NextFree = -1;
-        Logger& m_Logger;
+        int64_t m_NextFree = -1;
 
         friend EventListener;
     };

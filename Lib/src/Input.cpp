@@ -2,10 +2,16 @@
 // Created by Killian on 01/12/2023.
 //
 #include "Input.h"
+#include "Application.h"
 
 namespace NGN
 {
-    Input::Input(std::shared_ptr<EventManager> eventManager)
+    Input& Input::Get()
+    {
+		return Application::Get().GetInput();
+    }
+
+    Input::Input()
         : EventListener({
             EventType::KEY_PRESSED,
             EventType::KEY_RELEASED,
@@ -14,63 +20,63 @@ namespace NGN
             EventType::MOUSE_MOVED,
             EventType::MOUSE_SCROLLED,
             // EventType::FRAME_STARTED
-        }, std::move(eventManager))
+        })
     {}
 
     bool Input::IsKeyPressed(const Key key)
     {
-        return m_Keys[key];
+        return Get().m_Keys[key];
     }
 
     bool Input::IsMouseButtonPressed(const MouseButton button)
     {
-        return m_MouseButtons[button];
+        return Get().m_MouseButtons[button];
     }
 
-    float Input::GetMouseX() const
+    float Input::GetMouseX()
     {
-        return m_MouseX;
+        return Get().m_MouseX;
     }
 
-    float Input::GetMouseY() const
+    float Input::GetMouseY()
     {
-        return m_MouseY;
+        return Get().m_MouseY;
     }
 
-    float Input::GetMouseScrollX() const
+    float Input::GetMouseScrollX()
     {
-        return m_MouseScrollX;
+        return Get().m_MouseScrollX;
     }
 
-    float Input::GetMouseScrollY() const
+    float Input::GetMouseScrollY()
     {
-        return m_MouseScrollY;
+        return Get().m_MouseScrollY;
     }
 
-    float Input::GetMouseDeltaX() const
+    float Input::GetMouseDeltaX()
     {
-        return m_MouseDeltaX;
+        return Get().m_MouseDeltaX;
     }
 
-    float Input::GetMouseDeltaY() const
+    float Input::GetMouseDeltaY()
     {
-        return m_MouseDeltaY;
+        return Get().m_MouseDeltaY;
     }
 
     void Input::StartTyping()
     {
-        m_Typing = true;
-        m_TextBuffer = "";
+        Get().m_Typing = true;
+        Get().m_TextBuffer = "";
     }
 
     void Input::StopTyping()
     {
-        m_Typing = false;
+        Get().m_Typing = false;
     }
 
     String& Input::GetTextBuffer()
     {
-        return m_TextBuffer;
+        return Get().m_TextBuffer;
     }
 
     bool Input::OnEvent(const EventType type, const EventData data)

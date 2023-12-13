@@ -22,6 +22,10 @@ namespace NGN
             : m_Data(list)
         {}
 
+        List(const List& other)
+			: m_Data(other.m_Data)
+		{}
+
         void PushBack(const T& value)
         {
             m_Data.push_back(value);
@@ -42,7 +46,20 @@ namespace NGN
             m_Data.clear();
         }
 
+        void Resize(size_t size)
+		{
+			m_Data.resize(size);
+		}
+
         [[nodiscard]] size_t Size() const { return m_Data.size(); }
+        [[nodiscard]] T* GetData() { return m_Data.data(); }
+        [[nodiscard]] const T* GetData() const { return m_Data.data(); }
+
+        template <typename... Args>
+        void EmplaceBack(Args&&... args)
+		{
+			m_Data.emplace_back(std::forward<Args>(args)...);
+		}
 
         const T& operator[](size_t index) const { return m_Data[index]; }
         T& operator[](size_t index) { return m_Data[index]; }
