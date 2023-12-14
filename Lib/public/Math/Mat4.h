@@ -3,6 +3,7 @@
 #include <type_traits>
 #include "Math/Vec3.h"
 #include "Math/Vec4.h"
+#include <numbers>
 
 namespace NGN::Math
 {
@@ -51,6 +52,34 @@ namespace NGN::Math
 		{
 			Mat4<T, COLUMN_MAJOR> mat = Identity();
 
+			constexpr T toRadians = std::numbers::pi_v<T> / 180;
+
+			T cosX = cos(rotation.x * toRadians);
+			T sinX = sin(rotation.x * toRadians);
+			T cosY = cos(rotation.y * toRadians);
+			T sinY = sin(rotation.y * toRadians);
+			T cosZ = cos(rotation.z * toRadians);
+			T sinZ = sin(rotation.z * toRadians);
+
+			mat[0][0] = cosY * cosZ;
+			mat[0][1] = cosY * sinZ;
+			mat[0][2] = -sinY;
+
+			mat[1][0] = sinX * sinY * cosZ - cosX * sinZ;
+			mat[1][1] = sinX * sinY * sinZ + cosX * cosZ;
+			mat[1][2] = sinX * cosY;
+
+			mat[2][0] = cosX * sinY * cosZ + sinX * sinZ;
+			mat[2][1] = cosX * sinY * sinZ - sinX * cosZ;
+			mat[2][2] = cosX * cosY;
+
+			return mat;
+		}
+
+		static constexpr Mat4<T, COLUMN_MAJOR> RotationRadians(const Vec3<T>& rotation)
+		{
+			Mat4<T, COLUMN_MAJOR> mat = Identity();
+
 			T cosX = cos(rotation.x);
 			T sinX = sin(rotation.x);
 			T cosY = cos(rotation.y);
@@ -77,6 +106,57 @@ namespace NGN::Math
 		{
 			Mat4<T, COLUMN_MAJOR> mat = Identity();
 
+			constexpr T toRadians = std::numbers::pi_v<T> / 180;
+
+			T cosA = cos(angle * toRadians);
+			T sinA = sin(angle * toRadians);
+
+			mat[1][1] = cosA;
+			mat[1][2] = sinA;
+			mat[2][1] = -sinA;
+			mat[2][2] = cosA;
+
+			return mat;
+		}
+
+		static constexpr Mat4<T, COLUMN_MAJOR> RotationY(T angle)
+		{
+			Mat4<T, COLUMN_MAJOR> mat = Identity();
+
+			constexpr T toRadians = std::numbers::pi_v<T> / 180;
+
+			T cosA = cos(angle * toRadians);
+			T sinA = sin(angle * toRadians);
+
+			mat[0][0] = cosA;
+			mat[0][2] = -sinA;
+			mat[2][0] = sinA;
+			mat[2][2] = cosA;
+
+			return mat;
+		}
+
+		static constexpr Mat4<T, COLUMN_MAJOR> RotationZ(T angle)
+		{
+			Mat4<T, COLUMN_MAJOR> mat = Identity();
+
+			constexpr T toRadians = std::numbers::pi_v<T> / 180;
+
+			T cosA = cos(angle * toRadians);
+			T sinA = sin(angle * toRadians);
+
+			mat[0][0] = cosA;
+			mat[0][1] = sinA;
+			mat[1][0] = -sinA;
+			mat[1][1] = cosA;
+
+			return mat;
+		}
+
+		static constexpr Mat4<T, COLUMN_MAJOR> RotationXRadians(T angle)
+		{
+			Mat4<T, COLUMN_MAJOR> mat = Identity();
+
 			T cosA = cos(angle);
 			T sinA = sin(angle);
 
@@ -88,7 +168,7 @@ namespace NGN::Math
 			return mat;
 		}
 
-		static constexpr Mat4<T, COLUMN_MAJOR> RotationY(T angle)
+		static constexpr Mat4<T, COLUMN_MAJOR> RotationYRadians(T angle)
 		{
 			Mat4<T, COLUMN_MAJOR> mat = Identity();
 
@@ -103,7 +183,7 @@ namespace NGN::Math
 			return mat;
 		}
 
-		static constexpr Mat4<T, COLUMN_MAJOR> RotationZ(T angle)
+		static constexpr Mat4<T, COLUMN_MAJOR> RotationZRadians(T angle)
 		{
 			Mat4<T, COLUMN_MAJOR> mat = Identity();
 
@@ -204,16 +284,16 @@ namespace NGN::Math
 		const T* operator[](int index) const { return &m_Data[index * 4]; }
 		T* operator[](int index) { return &m_Data[index * 4]; }
 
-		Mat4<T, COLUMN_MAJOR>& operator*(const Mat4<T, COLUMN_MAJOR>& other)
+		Mat4<T, COLUMN_MAJOR> operator*(const Mat4<T, COLUMN_MAJOR>& other)
 		{
 			Mat4<T, COLUMN_MAJOR> result = Mat4<T, COLUMN_MAJOR>::Zero();
 
 			for (int row = 0; row < 4; row++)
 				for (int col = 0; col < 4; col++)
 					for (int i = 0; i < 4; i++)
-						result[row][col] += m_Data[row + i * 4] * other[col][i];
+						result[row][col] += m_Data[row * 4 + i] * other[i][col];
 
-			return *this;
+			return result;
 		}
 
 		Mat4<T, COLUMN_MAJOR>& operator*=(const Mat4<T, COLUMN_MAJOR>& other)
@@ -223,7 +303,7 @@ namespace NGN::Math
 			for (int row = 0; row < 4; row++)
 				for (int col = 0; col < 4; col++)
 					for (int i = 0; i < 4; i++)
-						result[row][col] += m_Data[row + i * 4] * other[col][i];
+						result[row][col] += m_Data[row * 4 + i] * other[i][col];
 
 			*this = result;
 
@@ -289,6 +369,85 @@ namespace NGN::Math
 		{
 			Mat4<T, ROW_MAJOR> mat = Identity();
 
+			constexpr T toRadians = std::numbers::pi_v<T> / 180;
+
+			T cosX = cos(rotation.x * toRadians);
+			T sinX = sin(rotation.x * toRadians);
+			T cosY = cos(rotation.y * toRadians);
+			T sinY = sin(rotation.y * toRadians);
+			T cosZ = cos(rotation.z * toRadians);
+			T sinZ = sin(rotation.z * toRadians);
+
+			mat[0][0] = cosY * cosZ;
+			mat[0][1] = -cosY * sinZ;
+			mat[0][2] = sinY;
+
+			mat[1][0] = sinX * sinY * cosZ + cosX * sinZ;
+			mat[1][1] = cosX * cosZ - sinX * sinY * sinZ;
+			mat[1][2] = sinX * -cosY;
+
+			mat[2][0] = -cosX * sinY * cosZ + sinX * sinZ;
+			mat[2][1] = cosX * sinY * sinZ + sinX * cosZ;
+			mat[2][2] = cosX * cosY;
+
+			return mat;
+		}
+
+		static constexpr Mat4<T, ROW_MAJOR> RotationX(T angle)
+		{
+			Mat4<T, ROW_MAJOR> mat = Identity();
+
+			constexpr T toRadians = std::numbers::pi_v<T> / 180;
+
+			T cosA = cos(angle * toRadians);
+			T sinA = sin(angle * toRadians);
+
+			mat[1][1] = cosA;
+			mat[2][1] = sinA;
+			mat[1][2] = -sinA;
+			mat[2][2] = cosA;
+
+			return mat;
+		}
+
+		static constexpr Mat4<T, ROW_MAJOR> RotationY(T angle)
+		{
+			Mat4<T, ROW_MAJOR> mat = Identity();
+
+			constexpr T toRadians = std::numbers::pi_v<T> / 180;
+
+			T cosA = cos(angle * toRadians);
+			T sinA = sin(angle * toRadians);
+
+			mat[0][0] = cosA;
+			mat[2][0] = -sinA;
+			mat[0][2] = sinA;
+			mat[2][2] = cosA;
+
+			return mat;
+		}
+		
+		static constexpr Mat4<T, ROW_MAJOR> RotationZ(T angle)
+		{
+			Mat4<T, ROW_MAJOR> mat = Identity();
+
+			constexpr T toRadians = std::numbers::pi_v<T> / 180;
+
+			T cosA = cos(angle * toRadians);
+			T sinA = sin(angle * toRadians);
+
+			mat[0][0] = cosA;
+			mat[1][0] = sinA;
+			mat[0][1] = -sinA;
+			mat[1][1] = cosA;
+
+			return mat;
+		}
+
+		static constexpr Mat4<T, ROW_MAJOR> RotationRadians(const Vec3<T>& rotation)
+		{
+			Mat4<T, ROW_MAJOR> mat = Identity();
+
 			T cosX = cos(rotation.x);
 			T sinX = sin(rotation.x);
 			T cosY = cos(rotation.y);
@@ -297,21 +456,21 @@ namespace NGN::Math
 			T sinZ = sin(rotation.z);
 
 			mat[0][0] = cosY * cosZ;
-			mat[1][0] = cosY * sinZ;
-			mat[2][0] = -sinY;
+			mat[0][1] = -cosY * sinZ;
+			mat[0][2] = sinY;
 
-			mat[0][1] = sinX * sinY * cosZ - cosX * sinZ;
-			mat[1][1] = sinX * sinY * sinZ + cosX * cosZ;
-			mat[2][1] = sinX * cosY;
+			mat[1][0] = sinX * sinY * cosZ + cosX * sinZ;
+			mat[1][1] = cosX * cosZ - sinX * sinY * sinZ;
+			mat[1][2] = sinX * -cosY;
 
-			mat[0][2] = cosX * sinY * cosZ + sinX * sinZ;
-			mat[1][2] = cosX * sinY * sinZ - sinX * cosZ;
+			mat[2][0] = -cosX * sinY * cosZ + sinX * sinZ;
+			mat[2][1] = cosX * sinY * sinZ + sinX * cosZ;
 			mat[2][2] = cosX * cosY;
 
 			return mat;
 		}
 
-		static constexpr Mat4<T, ROW_MAJOR> RotationX(T angle)
+		static constexpr Mat4<T, ROW_MAJOR> RotationXRadians(T angle)
 		{
 			Mat4<T, ROW_MAJOR> mat = Identity();
 
@@ -326,7 +485,7 @@ namespace NGN::Math
 			return mat;
 		}
 
-		static constexpr Mat4<T, ROW_MAJOR> RotationY(T angle)
+		static constexpr Mat4<T, ROW_MAJOR> RotationYRadians(T angle)
 		{
 			Mat4<T, ROW_MAJOR> mat = Identity();
 
@@ -340,8 +499,8 @@ namespace NGN::Math
 
 			return mat;
 		}
-		
-		static constexpr Mat4<T, ROW_MAJOR> RotationZ(T angle)
+
+		static constexpr Mat4<T, ROW_MAJOR> RotationZRadians(T angle)
 		{
 			Mat4<T, ROW_MAJOR> mat = Identity();
 
@@ -442,16 +601,16 @@ namespace NGN::Math
 		const T* operator[](int index) const { return &m_Data[index * 4]; }
 		T* operator[](int index) { return &m_Data[index * 4]; }
 
-		Mat4<T, ROW_MAJOR>& operator*(const Mat4<T, ROW_MAJOR>& other)
+		Mat4<T, ROW_MAJOR> operator*(const Mat4<T, ROW_MAJOR>& other)
 		{
 			Mat4<T, ROW_MAJOR> result = Mat4<T, ROW_MAJOR>::Zero();
 
 			for (int row = 0; row < 4; row++)
 				for (int col = 0; col < 4; col++)
 					for (int i = 0; i < 4; i++)
-						result[row][col] += m_Data[row + i * 4] * other[col][i];
+						result[row][col] += m_Data[row * 4 + i] * other[i][col];
 
-			return *this;
+			return result;
 		}
 
 		Mat4<T, ROW_MAJOR>& operator*=(const Mat4<T, ROW_MAJOR>& other)
@@ -461,20 +620,11 @@ namespace NGN::Math
 			for (int row = 0; row < 4; row++)
 				for (int col = 0; col < 4; col++)
 					for (int i = 0; i < 4; i++)
-						result[row][col] += m_Data[row + i * 4] * other[col][i];
+						result[row][col] += m_Data[row * 4 + i] * other[i][col];
+
+			*this = result;
 
 			return *this;
-		}
-
-		Vec4<T> operator*(const Vec4<T>& other)
-		{
-			Vec4<T> result;
-
-			for (int row = 0; row < 4; row++)
-				for (int col = 0; col < 4; col++)
-					result[row] += m_Data[row + col * 4] * other[col];
-
-			return result;
 		}
 
 		Mat4<T, ROW_MAJOR>& operator=(const Mat4<T, ROW_MAJOR>& other)
@@ -490,4 +640,16 @@ namespace NGN::Math
 
 		T m_Data[16] = { 0 };
 	};
+
+	template <typename T>
+	Vec4<T> operator*(const Mat4<T, ROW_MAJOR> mat, const Vec4<T>& other)
+	{
+		Vec4<T> result;
+
+		for (int row = 0; row < 4; row++)
+			for (int col = 0; col < 4; col++)
+				result[row] += mat[row + col * 4] * other[col];
+
+		return result;
+	}
 }

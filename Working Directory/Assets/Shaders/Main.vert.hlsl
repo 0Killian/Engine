@@ -19,6 +19,6 @@ cbuffer ConstantBuffer : register(b0)
 VSOutput main(VSInput input)
 {
     VSOutput output;
-    output.position = mul(mul(float4(input.position, 1.0f), input.model), mul(View, Projection));
+    output.position = mul(mul(Projection, View), mul(float4(input.position, 1.0f), input.model));
     return output;
 }

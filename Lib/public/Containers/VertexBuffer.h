@@ -20,7 +20,8 @@ namespace NGN
 			Float2,
 			Float3,
 			Float4,
-			Mat4,
+			Mat4Row,
+			Mat4Column,
 			Int,
 			Int2,
 			Int3,
@@ -48,7 +49,8 @@ namespace NGN
 			case Float2: return sizeof(float) * 2 * m_Count;
 			case Float3: return sizeof(float) * 3 * m_Count;
 			case Float4: return sizeof(float) * 4 * m_Count;
-			case Mat4: return sizeof(float) * 16 * m_Count;
+			case Mat4Row:
+			case Mat4Column: return sizeof(float) * 16 * m_Count;
 			case Int: return sizeof(int)  * 1 * m_Count;
 			case Int2: return sizeof(int) * 2 * m_Count;
 			case Int3: return sizeof(int) * 3 * m_Count;
@@ -291,8 +293,7 @@ namespace NGN
 			*(bool*)&m_Data[offset] = value;
 		}
 
-		template <Math::MatOrder Order>
-		void SetElement(size_t vertexIndex, const String& elementName, Math::Mat4<float, Order> value, size_t elementIndex = 0)
+		void SetElement(size_t vertexIndex, const String& elementName, Math::Mat4<float, Math::ROW_MAJOR> value, size_t elementIndex = 0)
 		{
 			if (vertexIndex >= m_VertexCount)
 				throw std::runtime_error("Invalid vertex index");
@@ -301,12 +302,31 @@ namespace NGN
 		        throw std::runtime_error("Invalid element name");
 		
 		    auto& element = m_Elements[elementName];
-		    if (element.m_Type != VertexStructureElement::Mat4)
+		    if (element.m_Type != VertexStructureElement::Mat4Row)
 		        throw std::runtime_error("Invalid element type");
 		
 		    if (elementIndex >= element.m_Count)
 		        throw std::runtime_error("Invalid element index");
 		
+			size_t offset = vertexIndex * m_Stride + element.m_Offset + elementIndex * sizeof(float) * 16;
+			memcpy(&m_Data[offset], value.GetData(), sizeof(float) * 16);
+		}
+
+		void SetElement(size_t vertexIndex, const String& elementName, Math::Mat4<float, Math::COLUMN_MAJOR> value, size_t elementIndex = 0)
+		{
+			if (vertexIndex >= m_VertexCount)
+				throw std::runtime_error("Invalid vertex index");
+
+			if (!m_Elements.ContainsKey(elementName))
+				throw std::runtime_error("Invalid element name");
+
+			auto& element = m_Elements[elementName];
+			if (element.m_Type != VertexStructureElement::Mat4Column)
+				throw std::runtime_error("Invalid element type");
+
+			if (elementIndex >= element.m_Count)
+				throw std::runtime_error("Invalid element index");
+
 			size_t offset = vertexIndex * m_Stride + element.m_Offset + elementIndex * sizeof(float) * 16;
 			memcpy(&m_Data[offset], value.GetData(), sizeof(float) * 16);
 		}
@@ -534,20 +554,35 @@ namespace NGN
 			*(bool*)&m_Data[offset] = value;
 		}
 
-		template <Math::MatOrder Order>
-		void SetElement(const String& elementName, Math::Mat4<float, Order> value, size_t elementIndex = 0)
+		void SetElement(const String& elementName, Math::Mat4<float, Math::ROW_MAJOR> value, size_t elementIndex = 0)
 		{
 		    if(!m_Elements.ContainsKey(elementName))
 		        throw std::runtime_error("Invalid element name");
 		
 		    auto& element = m_Elements[elementName];
-		    if (element.m_Type != VertexStructureElement::Mat4)
+		    if (element.m_Type != VertexStructureElement::Mat4Row)
 		        throw std::runtime_error("Invalid element type");
 		
 		    if (elementIndex >= element.m_Count)
 		        throw std::runtime_error("Invalid element index");
 		
 		    size_t offset = element.m_Offset + elementIndex * sizeof(float) * 16;
+			memcpy(&m_Data[offset], value.GetData(), sizeof(float) * 16);
+		}
+
+		void SetElement(const String& elementName, Math::Mat4<float, Math::COLUMN_MAJOR> value, size_t elementIndex = 0)
+		{
+			if (!m_Elements.ContainsKey(elementName))
+				throw std::runtime_error("Invalid element name");
+
+			auto& element = m_Elements[elementName];
+			if (element.m_Type != VertexStructureElement::Mat4Column)
+				throw std::runtime_error("Invalid element type");
+
+			if (elementIndex >= element.m_Count)
+				throw std::runtime_error("Invalid element index");
+
+			size_t offset = element.m_Offset + elementIndex * sizeof(float) * 16;
 			memcpy(&m_Data[offset], value.GetData(), sizeof(float) * 16);
 		}
 

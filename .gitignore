@@ -1,3 +1,5 @@
 .idea/
+.vs/
 build/
 out/
+Working Directory/imgui.ini

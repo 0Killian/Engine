@@ -10,7 +10,7 @@ namespace NGN::Component
 		NGN::Mesh& ngnMesh = ResourceManager::Get().GetMesh(mesh.MeshName);
 
 		auto buffer = InstanceBufferBuilder()
-			.AddElement("MODEL", VertexStructureElement::Mat4, 1)
+			.AddElement("MODEL", VertexStructureElement::Mat4Row, 1)
 			.Build();
 
 		buffer.SetElement("MODEL", transform.GetMatrix());

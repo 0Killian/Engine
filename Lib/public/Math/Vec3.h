@@ -1,11 +1,20 @@
 #pragma once
 
+#include <cmath>
+#include <compare>
+
 namespace NGN::Math
 {
 	template <typename T>
 	struct Vec3
 	{
-		T x, y, z;
+		union
+		{
+			T data[3];
+			struct { T x, y, z; };
+			struct { T r, g, b; };
+			struct { T s, t, p; };
+		};
 
 		Vec3() = default;
 		Vec3(T x, T y, T z) : x(x), y(y), z(z) {}

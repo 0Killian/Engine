@@ -24,7 +24,8 @@ namespace NGN
             .Height = m_Configuration.WindowHeight,
             .API = RenderAPI::D3D11,
         })
-    {}
+    {
+    }
 
     Application::~Application()
     {
@@ -38,7 +39,32 @@ namespace NGN
         m_Window.EnableEvents();
         m_Window.CreateRenderer();
 
+        Component::InitComponents();
+
         InitInner();
+    }
+
+    void UpdateTransform(Component::Transform& transform, const Component::Mesh& mesh, entt::entity entity)
+    {
+        auto buffer = InstanceBufferBuilder()
+            .AddElement("MODEL", VertexStructureElement::Mat4Row, 1)
+            .Build();
+
+
+        NGN::Mesh& ngnMesh = ResourceManager::Get().GetMesh(mesh.MeshName);
+
+        buffer.SetElement("MODEL", transform.GetMatrix());
+
+        ngnMesh.UpdateInstance(mesh.InstanceID, buffer);
+
+        for (auto&& [child, transform, mesh] : Application::Get().GetRegistry().view<Component::Transform, Component::Mesh>().each())
+        {
+            if (transform.GetParent() == entity)
+            {
+                transform.SetShouldUpdate(true);
+                UpdateTransform(transform, mesh, child);
+            }
+        }
     }
 
     void Application::Run()
@@ -56,18 +82,18 @@ namespace NGN
             
             FrameData frameData = {
                 .constantBuffer = InstanceBufferBuilder()
-                    .AddElement("View", VertexStructureElement::Mat4, 1)
-                    .AddElement("Projection", VertexStructureElement::Mat4, 1)
+                    .AddElement("View", VertexStructureElement::Mat4Column, 1)
+                    .AddElement("Projection", VertexStructureElement::Mat4Column, 1)
                     .Build(),
             };
 
-            Math::Mat4<float, Math::ROW_MAJOR> view = Math::Mat4<float, Math::ROW_MAJOR>::LookAt(
+            Math::Mat4<float, Math::COLUMN_MAJOR> view = Math::Mat4<float, Math::COLUMN_MAJOR>::LookAt(
 				Math::Vec3<float>(cos(angle) * 4.0f, 0.0f, sin(angle) * 4.0f),
 				Math::Vec3<float>(0.0f, 0.0f, 0.0f),
 				Math::Vec3<float>(0.0f, 1.0f, 0.0f)
 			);
             
-            Math::Mat4<float, Math::ROW_MAJOR> projection = Math::Mat4<float, Math::ROW_MAJOR>::Perspective(
+            Math::Mat4<float, Math::COLUMN_MAJOR> projection = Math::Mat4<float, Math::COLUMN_MAJOR>::Perspective(
                 90.0f,
                 1280.0f / 720.0f,
                 0.1f,
@@ -79,22 +105,14 @@ namespace NGN
 
             FramePacket packet = GetRenderer().StartFrame(frameData);
 
-            auto buffer = InstanceBufferBuilder()
-                .AddElement("MODEL", VertexStructureElement::Mat4, 1)
-                .Build();
-
             m_GUI.BeginFrame();
 
-            for(auto&& [entity, transform, mesh] : m_Registry.view<Component::Transform, Component::Mesh>().each())
-			{
-				if(transform.ShouldUpdate())
+            for (auto&& [entity, transform, mesh] : m_Registry.view<Component::Transform, Component::Mesh>().each())
+            {
+                if (transform.ShouldUpdate())
                 {
-                    NGN::Mesh& ngnMesh = ResourceManager::Get().GetMesh(mesh.MeshName);
-
-                    buffer.SetElement("MODEL", transform.GetMatrix());
-
-                    mesh.InstanceID = ngnMesh.AddInstance(buffer);
-				}
+                    UpdateTransform(transform, mesh, entity);
+                }
 			}
 
             OnUpdate();

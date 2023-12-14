@@ -19,17 +19,20 @@ namespace NGN::Component
 		{
 		}
 
-		Math::Mat4<float, Math::COLUMN_MAJOR> GetMatrix()
+		Math::Mat4<float, Math::ROW_MAJOR> GetMatrix()
 		{
 			if(m_matrixDirty)
 			{
-				m_matrix = Math::Mat4<float, Math::COLUMN_MAJOR>::Identity();
-				m_matrix *= Math::Mat4<float, Math::COLUMN_MAJOR>::Translation(m_Position);
-				m_matrix *= Math::Mat4<float, Math::COLUMN_MAJOR>::Rotation(m_Rotation);
-				m_matrix *= Math::Mat4<float, Math::COLUMN_MAJOR>::Scale(m_Scale);
-
 				if (m_Parent)
-					m_matrix *= Application::Get().GetRegistry().get<Transform>(*m_Parent).GetMatrix();
+					m_matrix = Application::Get().GetRegistry().get<Transform>(*m_Parent).GetMatrix();
+				else
+					m_matrix = Math::Mat4<float, Math::ROW_MAJOR>::Identity();
+
+				auto local = Math::Mat4<float, Math::ROW_MAJOR>::Translation(m_Position);
+				local *= Math::Mat4<float, Math::ROW_MAJOR>::Rotation(m_Rotation);
+				local *= Math::Mat4<float, Math::ROW_MAJOR>::Scale(m_Scale);
+
+				m_matrix = m_matrix * local;
 
 				m_matrixDirty = false;
 			}
@@ -59,10 +62,20 @@ namespace NGN::Component
 			m_matrixDirty = true;
 		}
 
+		void SetParent(const std::optional<entt::entity>& parent)
+		{
+			m_Parent = parent;
+			m_matrixDirty = true;
+		}
+
+		void SetShouldUpdate(bool shouldUpdate) { m_matrixDirty = shouldUpdate; }
+
 		bool ShouldUpdate() const { return m_matrixDirty; }
 
+		std::optional<entt::entity> GetParent() const { return m_Parent; }
+
 	private:
-		Math::Mat4<float, Math::COLUMN_MAJOR> m_matrix = Math::Mat4<float, Math::COLUMN_MAJOR>::Identity();
+		Math::Mat4<float, Math::ROW_MAJOR> m_matrix = Math::Mat4<float, Math::ROW_MAJOR>::Identity();
 		bool m_matrixDirty = true;
 
 		Math::Vec3<float> m_Position{};
@@ -79,6 +92,16 @@ namespace NGN::Component
 
 		Mesh(const String& meshName)
 			: MeshName(meshName), InstanceID(0)
+		{
+		}
+	};
+
+	struct Tag
+	{
+		String Name;
+
+		Tag(const String& name)
+			: Name(name)
 		{
 		}
 	};

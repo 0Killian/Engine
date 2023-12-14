@@ -76,7 +76,7 @@ namespace NGN::D3D11
                 {
                     if (element->m_Type == VertexStructureElement::Float4)
                     {
-                        element->m_Type = VertexStructureElement::Mat4;
+                        element->m_Type = VertexStructureElement::Mat4Row;
                     }
                     else
                     {
@@ -208,7 +208,7 @@ namespace NGN::D3D11
             {
                 if (element->m_Type == VertexStructureElement::Float4)
                 {
-                    element->m_Type = VertexStructureElement::Mat4;
+                    element->m_Type = VertexStructureElement::Mat4Row;
                 }
                 else
                 {
@@ -319,7 +319,11 @@ namespace NGN::D3D11
                 }
                 else if (typeDesc.Type == D3D_SVT_FLOAT && typeDesc.Class == D3D_SVC_MATRIX_COLUMNS)
                 {
-                    element.m_Type = VertexStructureElement::Mat4;
+                    element.m_Type = VertexStructureElement::Mat4Column;
+                }
+                else if (typeDesc.Type == D3D_SVT_FLOAT && typeDesc.Class == D3D_SVC_MATRIX_ROWS)
+                {
+                    element.m_Type = VertexStructureElement::Mat4Row;
                 }
                 else
                 {
