@@ -11,4 +11,9 @@ namespace NGN
 	{
 		m_Pipeline.UpdateMeshInstance(m_RendererID, instanceId, buffer);
 	}
+
+	void Mesh::RemoveInstance(size_t instanceId)
+	{
+		m_Pipeline.RemoveMeshInstance(m_RendererID, instanceId);
+	}
 }
