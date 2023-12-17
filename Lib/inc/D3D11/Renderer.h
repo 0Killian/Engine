@@ -37,6 +37,9 @@ namespace NGN::D3D11
 
         RenderAPI GetAPI() const override { return RenderAPI::D3D11; }
 
+        void SetRenderMode(RenderMode mode) override { m_RenderMode = mode; }
+        RenderMode GetRenderMode() const override { return m_RenderMode; }
+
         FramePacket StartFrame(FrameData& frameData) override;
         void EndFrame(FramePacket packet) override;
         
@@ -47,8 +50,11 @@ namespace NGN::D3D11
 
         size_t AddMeshInstanceInPipeline(size_t RendererID, size_t meshID, InstanceBuffer buffer) override;
         void UpdateMeshInstanceInPipeline(size_t RendererID, size_t meshID, size_t instanceID, InstanceBuffer buffer) override;
+        void RemoveMeshInstanceInPipeline(size_t RendererID, size_t meshID, size_t instanceID) override;
 
         void SetVSync(bool enabled);
+
+        void* GetNativeRenderTexture() override { return m_FramePackets[m_CurrentFrame].RenderTextureSRV.Get(); }
 
         [[nodiscard]] inline ID3D11Device* GetDevice() const { return m_Device.Get(); }
         [[nodiscard]] inline ID3D11DeviceContext* GetContext() const { return m_Context.Get(); }
@@ -71,11 +77,19 @@ namespace NGN::D3D11
 
         size_t m_WindowID = 0;
         bool m_VSync = false;
+        RenderMode m_RenderMode = RenderMode::ToScreen;
 
         struct FramePacketData
         {
             ComPtr<ID3D11Texture2D> BackBuffer;
+            ComPtr<ID3D11Texture2D> RenderTexture;
+            ComPtr<ID3D11ShaderResourceView> RenderTextureSRV;
             ComPtr<ID3D11RenderTargetView> BackBufferRTV;
+            ComPtr<ID3D11RenderTargetView> RenderTextureRTV;
+            ComPtr<ID3D11Texture2D> DepthStencilBuffer;
+            ComPtr<ID3D11DepthStencilView> DepthStencilView;
+            ComPtr<ID3D11DepthStencilState> DepthStencilState;
+            ComPtr<ID3D11RasterizerState> RasterizerState;
         };
 
         List<FramePacketData> m_FramePackets;

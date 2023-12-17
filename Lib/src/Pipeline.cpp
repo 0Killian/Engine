@@ -26,4 +26,9 @@ namespace NGN
 	{
 		Renderer::Get().UpdateMeshInstanceInPipeline(m_RendererID, meshID, instanceID, buffer);
 	}
+
+	void Pipeline::RemoveMeshInstance(size_t meshID, size_t instanceID)
+	{
+		Renderer::Get().RemoveMeshInstanceInPipeline(m_RendererID, meshID, instanceID);
+	}
 }

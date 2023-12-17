@@ -14,7 +14,16 @@ namespace NGN
 
     struct FrameData
     {
-        InstanceBuffer constantBuffer;
+        InstanceBuffer ConstantBuffer;
+        struct {
+            float X, Y, Width, Height;
+        } Viewport;
+    };
+
+    enum class RenderMode
+    {
+        ToScreen,
+        ToTexture
     };
 
     class Renderer
@@ -23,6 +32,9 @@ namespace NGN
         virtual ~Renderer() = default;
 
         virtual RenderAPI GetAPI() const = 0;
+
+        virtual void SetRenderMode(RenderMode mode) = 0;
+        virtual RenderMode GetRenderMode() const = 0;
 
         virtual FramePacket StartFrame(FrameData& frameData) = 0;
         virtual void EndFrame(FramePacket packet) = 0;
@@ -34,6 +46,9 @@ namespace NGN
 
         virtual size_t AddMeshInstanceInPipeline(size_t RendererID, size_t meshID, InstanceBuffer buffer) = 0;
         virtual void UpdateMeshInstanceInPipeline(size_t RendererID, size_t meshID, size_t instanceID, InstanceBuffer buffer) = 0;
+        virtual void RemoveMeshInstanceInPipeline(size_t RendererID, size_t meshID, size_t instanceID) = 0;
+
+        virtual void* GetNativeRenderTexture() = 0;
 
         static Renderer& Get();
     };

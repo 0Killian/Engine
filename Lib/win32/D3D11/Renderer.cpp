@@ -103,6 +103,74 @@ namespace NGN
 
             THROW_IF_FAILED(m_SwapChain->GetBuffer(0, IID_PPV_ARGS(&framePacketData.BackBuffer)));
             THROW_IF_FAILED(m_Device->CreateRenderTargetView(framePacketData.BackBuffer.Get(), nullptr, &framePacketData.BackBufferRTV));
+            
+            D3D11_TEXTURE2D_DESC desc;
+			framePacketData.BackBuffer->GetDesc(&desc);
+
+            desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+			desc.CPUAccessFlags = 0;
+            desc.Usage = D3D11_USAGE_DEFAULT;
+            desc.MipLevels = 1;
+            desc.ArraySize = 1;
+            desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+            desc.SampleDesc.Count = 1;
+            desc.MiscFlags = 0;
+
+            THROW_IF_FAILED(m_Device->CreateTexture2D(&desc, nullptr, &framePacketData.RenderTexture));
+
+            D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+            rtvDesc.Format = desc.Format;
+            rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+            rtvDesc.Texture2D.MipSlice = 0;
+
+            THROW_IF_FAILED(m_Device->CreateRenderTargetView(framePacketData.RenderTexture.Get(), &rtvDesc, &framePacketData.RenderTextureRTV));
+
+            D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+            srvDesc.Format = desc.Format;
+            srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+            srvDesc.Texture2D.MipLevels = desc.MipLevels;
+            srvDesc.Texture2D.MostDetailedMip = 0;
+
+            THROW_IF_FAILED(m_Device->CreateShaderResourceView(framePacketData.RenderTexture.Get(), &srvDesc, &framePacketData.RenderTextureSRV));
+
+            // Depth stencil
+            D3D11_TEXTURE2D_DESC depthStencilDesc = {};
+            depthStencilDesc.Width = desc.Width;
+            depthStencilDesc.Height = desc.Height;
+            depthStencilDesc.MipLevels = 1;
+            depthStencilDesc.ArraySize = 1;
+            depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            depthStencilDesc.SampleDesc.Count = 1;
+            depthStencilDesc.SampleDesc.Quality = 0;
+            depthStencilDesc.Usage = D3D11_USAGE_DEFAULT;
+            depthStencilDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+            depthStencilDesc.CPUAccessFlags = 0;
+            depthStencilDesc.MiscFlags = 0;
+
+            THROW_IF_FAILED(m_Device->CreateTexture2D(&depthStencilDesc, nullptr, &framePacketData.DepthStencilBuffer));
+
+            THROW_IF_FAILED(m_Device->CreateDepthStencilView(framePacketData.DepthStencilBuffer.Get(), nullptr, &framePacketData.DepthStencilView));
+
+            D3D11_DEPTH_STENCIL_DESC depthStencilStateDesc = {};
+            depthStencilStateDesc.DepthEnable = true;
+            depthStencilStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+            depthStencilStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
+
+			THROW_IF_FAILED(m_Device->CreateDepthStencilState(&depthStencilStateDesc, &framePacketData.DepthStencilState));
+
+            D3D11_RASTERIZER_DESC rasterizerDesc = {};
+            rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+            rasterizerDesc.CullMode = D3D11_CULL_BACK;
+            rasterizerDesc.FrontCounterClockwise = true;
+            rasterizerDesc.DepthBias = 0;
+            rasterizerDesc.DepthBiasClamp = 0.0f;
+            rasterizerDesc.SlopeScaledDepthBias = 0.0f;
+            rasterizerDesc.DepthClipEnable = true;
+            rasterizerDesc.ScissorEnable = false;
+            rasterizerDesc.MultisampleEnable = false;
+            rasterizerDesc.AntialiasedLineEnable = false;
+
+            THROW_IF_FAILED(m_Device->CreateRasterizerState(&rasterizerDesc, &framePacketData.RasterizerState));
 
             m_FramePackets.PushBack(framePacketData);
         }
@@ -110,10 +178,16 @@ namespace NGN
 
     void D3D11::Renderer::DestroySwapchainResources()
     {
-        for(auto [BackBuffer, BackBufferRTV] : m_FramePackets)
+        for(auto& packet : m_FramePackets)
         {
-            BackBufferRTV.Reset();
-            BackBuffer.Reset();
+            packet.BackBufferRTV.Reset();
+            packet.RenderTexture.Reset();
+            packet.RenderTextureSRV.Reset();
+            packet.BackBuffer.Reset();
+            packet.RenderTextureRTV.Reset();
+            packet.DepthStencilBuffer.Reset();
+			packet.DepthStencilView.Reset();
+            packet.DepthStencilState.Reset();
         }
         m_FramePackets.Clear();
     }
@@ -131,6 +205,8 @@ namespace NGN
                 THROW_IF_FAILED(m_SwapChain->ResizeBuffers(0, data.WindowSize.Width, data.WindowSize.Height, DXGI_FORMAT_R8G8B8A8_UNORM, 0));
                 CreateSwapchainResources();
             }
+            break;
+
         default:
             break;
         }
@@ -162,23 +238,36 @@ namespace NGN
     {
         ImGui_ImplDX11_NewFrame();
         const D3D11_VIEWPORT viewport = {
-            .TopLeftX = 0,
-            .TopLeftY = 0,
-            .Width = static_cast<float>(m_Width),
-            .Height = static_cast<float>(m_Height),
+            .TopLeftX = frameData.Viewport.X,
+            .TopLeftY = frameData.Viewport.Y,
+            .Width = frameData.Viewport.Width,
+            .Height = frameData.Viewport.Height,
             .MinDepth = 0.0f,
             .MaxDepth = 1.0f
         };
 
         constexpr float clearColor[] = { 0.1f, 0.1f, 0.1f, 1.0f };
 
-        m_Context->ClearRenderTargetView(m_FramePackets[m_CurrentFrame].BackBufferRTV.Get(), clearColor);
         m_Context->RSSetViewports(1, &viewport);
-        m_Context->OMSetRenderTargets(1, m_FramePackets[m_CurrentFrame].BackBufferRTV.GetAddressOf(), nullptr);
+
+        if(m_RenderMode == RenderMode::ToScreen)
+		{
+			m_Context->ClearRenderTargetView(m_FramePackets[m_CurrentFrame].BackBufferRTV.Get(), clearColor);
+			m_Context->OMSetRenderTargets(1, m_FramePackets[m_CurrentFrame].BackBufferRTV.GetAddressOf(), m_FramePackets[m_CurrentFrame].DepthStencilView.Get());
+		}
+		else if(m_RenderMode == RenderMode::ToTexture)
+		{
+			m_Context->ClearRenderTargetView(m_FramePackets[m_CurrentFrame].RenderTextureRTV.Get(), clearColor);
+			m_Context->OMSetRenderTargets(1, m_FramePackets[m_CurrentFrame].RenderTextureRTV.GetAddressOf(), m_FramePackets[m_CurrentFrame].DepthStencilView.Get());
+		}
+
+        m_Context->ClearDepthStencilView(m_FramePackets[m_CurrentFrame].DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+        m_Context->OMSetDepthStencilState(m_FramePackets[m_CurrentFrame].DepthStencilState.Get(), 1);
+        m_Context->RSSetState(m_FramePackets[m_CurrentFrame].RasterizerState.Get());
 
         for (auto& pipeline : m_Pipelines)
         {
-            pipeline.UpdateConstantBuffer(frameData.constantBuffer);
+            pipeline.UpdateConstantBuffer(frameData.ConstantBuffer);
 		}
 
         return m_CurrentFrame;
@@ -191,6 +280,13 @@ namespace NGN
         for (auto& pipeline : m_Pipelines)
         {
             pipeline.Render();
+        }
+
+        if (m_RenderMode == RenderMode::ToTexture)
+        {
+            float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+            m_Context->ClearRenderTargetView(m_FramePackets[m_CurrentFrame].BackBufferRTV.Get(), clearColor);
+            m_Context->OMSetRenderTargets(1, m_FramePackets[m_CurrentFrame].BackBufferRTV.GetAddressOf(), nullptr);
         }
 
         ImGui::Render();
@@ -214,8 +310,6 @@ namespace NGN
     {
         m_VSync = enabled;
     }
-
-
 
     // Resources
     size_t D3D11::Renderer::CreatePipeline(const String& vertexSource, const String& pixelSource)
@@ -260,5 +354,15 @@ namespace NGN
 		}
 
 		m_Pipelines[m_PipelineMap[RendererID]].UpdateInstance(meshID, instanceID, buffer);
+    }
+
+    void D3D11::Renderer::RemoveMeshInstanceInPipeline(size_t RendererID, size_t meshID, size_t instanceID)
+    {
+        if (!m_PipelineMap.ContainsKey(RendererID))
+        {
+            throw std::runtime_error("Invalid RendererID");
+        }
+
+        m_Pipelines[m_PipelineMap[RendererID]].RemoveInstance(meshID, instanceID);
     }
 }

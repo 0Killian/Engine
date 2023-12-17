@@ -16,6 +16,7 @@ namespace NGN
 		size_t AddMesh(const String& mesh, class Mesh& meshData);
 		size_t AddMeshInstance(size_t meshID, InstanceBuffer buffer);
 		void UpdateMeshInstance(size_t meshID, size_t instanceID, InstanceBuffer buffer);
+		void RemoveMeshInstance(size_t meshID, size_t instanceID);
 
 	private:
 		size_t m_RendererID;
