@@ -9,6 +9,8 @@
 #include "Logger.h"
 #include "Containers/HashMap.h"
 #include "Containers/List.h"
+#include "entt.h"
+#include "ResourceManager.h"
 
 namespace NGN
 {
@@ -30,6 +32,16 @@ namespace NGN
         MOUSE_BUTTON_RELEASED,
         MOUSE_MOVED,
         MOUSE_SCROLLED,
+
+        // Entity
+        ENTITY_CREATED,
+        ENTITY_DESTROYED,
+        PARENT_CHANGED,
+        TAG_CHANGED,
+
+        // Resources
+        RESOURCE_ADDED,
+        RESOURCE_REMOVED,
 
         DEBUG1,
         DEBUG2,
@@ -72,6 +84,20 @@ namespace NGN
             float X;
             float Y;
         } MouseScrolled;
+
+        entt::entity Entity;
+
+        struct ParentChanged
+		{
+			entt::entity Entity;
+			const entt::entity* OldParent;
+		} ParentChanged;
+
+        struct Resource
+        {
+            ResourceType Type;
+            const char* Name;
+        } Resource;
     };
 
     class EventManager;
