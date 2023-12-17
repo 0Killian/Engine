@@ -21,6 +21,7 @@ namespace NGN
 
 		size_t AddInstance(InstanceBuffer buffer);
 		void UpdateInstance(size_t instanceId, InstanceBuffer buffer);
+		void RemoveInstance(size_t instanceId);
 
 		NGN::Mesh& operator=(const NGN::Mesh& other)
 		{

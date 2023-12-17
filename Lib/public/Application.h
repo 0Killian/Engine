@@ -65,5 +65,10 @@ namespace NGN
         static Application* s_Instance;
 
         virtual void InitInner() = 0;
+
+        float m_RendererViewportX = 0;
+        float m_RendererViewportY = 0;
+        float m_RendererViewportWidth = 0;
+        float m_RendererViewportHeight = 0;
     };
 }

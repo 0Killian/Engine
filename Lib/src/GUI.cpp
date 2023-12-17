@@ -1,6 +1,7 @@
 #include "GUI.h"
 #include "Application.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 
 namespace NGN
 {
@@ -20,9 +21,80 @@ namespace NGN
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 	}
 
+	void GUI::Init(const HashMap<String, std::shared_ptr<Window>>& windows)
+	{
+		m_Windows = windows;
+	}
+
 	void GUI::BeginFrame()
 	{
 		ImGui::NewFrame();
+		m_NextID = 0;
+
+		ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;//;ImGuiDockNodeFlags_PassthruCentralNode;
+		ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+
+		ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos(viewport->Pos);
+		ImGui::SetNextWindowSize(viewport->Size);
+		ImGui::SetNextWindowViewport(viewport->ID);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+		window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+		window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+		//window_flags |= ImGuiWindowFlags_NoBackground;
+
+		ImGui::Begin("DockSpace", nullptr, window_flags);
+		ImGui::PopStyleVar(3);
+
+		ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+
+		if (!m_DockSpaceInitialized)
+		{
+			m_DockSpaceInitialized = true;
+
+			ImGui::DockBuilderRemoveNode(dockspace_id);
+			ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
+			ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->Size);
+
+			ImGuiID left = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.2f, nullptr, &dockspace_id);
+			ImGuiID right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.2f, nullptr, &dockspace_id);
+			ImGuiID top = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Up, 0.2f, nullptr, &dockspace_id);
+			ImGuiID bottom = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.2f, nullptr, &dockspace_id);
+
+			for (const auto& [name, window] : m_Windows)
+			{
+				if (window->DockSide == Side::Bottom)
+				{
+					ImGui::DockBuilderDockWindow(name.GetData(), bottom);
+				}
+				else if (window->DockSide == Side::Left)
+				{
+					ImGui::DockBuilderDockWindow(name.GetData(), left);
+				}
+				else if (window->DockSide == Side::Right)
+				{
+					ImGui::DockBuilderDockWindow(name.GetData(), right);
+				}
+				else if (window->DockSide == Side::Top)
+				{
+					ImGui::DockBuilderDockWindow(name.GetData(), top);
+				}
+				else if (window->DockSide == Side::Tab)
+				{
+					throw std::runtime_error("Unimplemented");
+				}
+				else if (window->DockSide == Side::Viewport)
+				{
+					ImGui::DockBuilderDockWindow(name.GetData(), dockspace_id);
+				}
+			}
+
+			ImGui::DockBuilderFinish(dockspace_id);
+		}
 	}
 
 	void GUI::EndFrame()
@@ -31,58 +103,111 @@ namespace NGN
 		ImGui::RenderPlatformWindowsDefault();
 	}
 
-	void GUI::StartWindow(const char* name, bool& open)
+	void GUI::Render(HashMap<String, std::shared_ptr<Window>>& additionalWindows)
 	{
-		ImGui::Begin(name, &open);
-	}
+		for (auto& [name, window] : m_Windows)
+		{
+			RenderWindow(name, *window);
+		}
 
-	void GUI::StartWindow(const char* name)
-	{
-		ImGui::Begin(name);
-	}
+		for (auto& [name, window] : additionalWindows)
+		{
+			if(m_Windows.ContainsKey(name))
+				throw std::runtime_error((String("Window with name ") + name + " already exists").GetData());
 
-	void GUI::EndWindow()
-	{
+			if(window->DockSide != std::nullopt)
+				throw std::runtime_error("Additional windows cannot be docked");
+
+			RenderWindow(name, *window);
+		}
+
 		ImGui::End();
 	}
 
-	void GUI::PushID(uint32_t id)
+	void GUI::RenderWindow(const String& name, Window& window)
 	{
-		ImGui::PushID(id);
-	}
+		if(!window.Open)
+			return;
 
-	void GUI::PopID()
-	{
-		ImGui::PopID();
-	}
+		if (window.X.has_value() && window.Y.has_value())
+		{
+			ImGui::SetNextWindowPos(ImVec2(window.X.value(), window.Y.value()));
+		}
 
-	bool GUI::TreeNode(const char* label, TreeNodeFlags flags)
-	{
-		ImGuiTreeNodeFlags imguiFlags = 0;
-		if (flags & TreeNodeFlags::Leaf)
-					imguiFlags |= ImGuiTreeNodeFlags_Leaf;
+		if (window.Width.has_value() && window.Height.has_value())
+		{
+			ImGui::SetNextWindowSize(ImVec2(window.Width.value(), window.Height.value()));
+		}
 
-		return ImGui::TreeNodeEx(label, imguiFlags);
-	}
+		ImGuiWindowFlags flags = ImGuiWindowFlags_None;
+		int styleVarCount = 0;
 
-	void GUI::TreePop()
-	{
-		ImGui::TreePop();
-	}
+		if (window.Flags & Window::DockSpace)
+		{
+			throw std::runtime_error("Unimplemented");
+		}
+		else
+		{
+			if (window.Flags & Window::NoDecoration)
+			{
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-	bool GUI::IsItemClicked()
-	{
-		return ImGui::IsItemClicked();
-	}
+				styleVarCount = 2;
+				flags |= ImGuiWindowFlags_NoDecoration;
+			}
 
-	void GUI::Section(const char* label)
-	{
-		ImGui::Text(label);
-		ImGui::Separator();
-	}
+			if (window.Flags & Window::NoMove)
+			{
+				flags |= ImGuiWindowFlags_NoMove;
+			}
 
-	bool GUI::Vec3(const char* label, Math::Vec3<float>& vec, float min, float max)
-	{
-		return ImGui::DragFloat3(label, vec.data, 1.0f, min, max);
+			if (window.Flags & Window::NoResize)
+			{
+				flags |= ImGuiWindowFlags_NoResize;
+			}
+
+			if (window.Flags & Window::NoBringToFrontOnFocus)
+			{
+				flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
+			}
+
+			if (window.Flags & Window::NoNavFocus)
+			{
+				flags |= ImGuiWindowFlags_NoNavFocus;
+			}
+
+			if (window.Flags & Window::NoBackground)
+			{
+				flags |= ImGuiWindowFlags_NoBackground;
+				ImGui::SetNextWindowBgAlpha(0.0f);
+				ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+			}
+		}
+
+		ImGui::Begin(
+			name.GetData(),
+			nullptr,
+			flags);
+
+		ImGui::PopStyleVar(styleVarCount);
+		if(window.Flags & Window::NoBackground)
+			ImGui::PopStyleColor();
+
+		if (window.Flags & Window::DockSpace)
+		{
+		}
+
+		for (auto& component : window.Components)
+		{
+			component->Render();
+		}
+
+		window.ComputedX = ImGui::GetWindowPos().x;
+		window.ComputedY = ImGui::GetWindowPos().y;
+		window.ComputedWidth = ImGui::GetWindowWidth();
+		window.ComputedHeight = ImGui::GetWindowHeight();
+
+		ImGui::End();
 	}
 }
