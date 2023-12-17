@@ -396,6 +396,9 @@ namespace NGN
 			m_Data.Resize(m_Stride);
 		}
 
+		template <typename T>
+		T GetElement(const String& elementName, size_t elementIndex = 0) const;
+
 		void SetElement(const String& elementName, float value, size_t elementIndex = 0)
 		{
 			if (!m_Elements.ContainsKey(elementName))
@@ -412,8 +415,43 @@ namespace NGN
 			*(float*)&m_Data[offset] = value;
 		}
 
+		template <>
+		float GetElement<float>(const String& elementName, size_t elementIndex) const
+		{
+			if (!m_Elements.ContainsKey(elementName))
+				throw std::runtime_error("Invalid element name");
+
+			auto& element = m_Elements.Get(elementName);
+			if (element.m_Type != VertexStructureElement::Float)
+				throw std::runtime_error("Invalid element type");
+
+			if (elementIndex >= element.m_Count)
+				throw std::runtime_error("Invalid element index");
+
+			size_t offset = element.m_Offset + elementIndex * sizeof(float);
+			return *(float*)&m_Data[offset];
+		}
+
 		// TODO: Vec2<float>
 		// void SetElement(const String& elementName, Vec2<float> value, size_t elementIndex = 0)
+		// {
+		//     if(!m_Elements.ContainsKey(elementName))
+		//         throw std::runtime_error("Invalid element name");
+		//
+		//     auto& element = m_Elements.Get(elementName);
+		//     if (element.m_Type != VertexStructureElement::Float2)
+		//         throw std::runtime_error("Invalid element type");
+		//
+		//     if (elementIndex >= element.m_Count)
+		//         throw std::runtime_error("Invalid element index");
+		//
+		//     size_t offset = element.m_Offset + elementIndex * sizeof(float) * 2;
+		//     *(float*)&m_Data[offset + sizeof(float) * 0] = value.x;
+		//     *(float*)&m_Data[offset + sizeof(float) * 1] = value.y;
+		// }
+		//
+		// template <>
+		// Vec2<float> GetElement<Vec2<float>>(const String& elementName, size_t elementIndex) const
 		// {
 		//     if(!m_Elements.ContainsKey(elementName))
 		//         throw std::runtime_error("Invalid element name");
@@ -426,8 +464,10 @@ namespace NGN
 		//         throw std::runtime_error("Invalid element index");
 		//
 		//     size_t offset = element.m_Offset + elementIndex * sizeof(float) * 2;
-		//     *(float*)&m_Data[offset + sizeof(float) * 0] = value.x;
-		//     *(float*)&m_Data[offset + sizeof(float) * 1] = value.y;
+		//     return Vec2<float>(
+		//         *(float*)&m_Data[offset + sizeof(float) * 0],
+		//         *(float*)&m_Data[offset + sizeof(float) * 1]
+		//     );
 		// }
 
 		void SetElement(const String& elementName, Math::Vec3<float> value, size_t elementIndex = 0)
@@ -446,6 +486,27 @@ namespace NGN
 		    *(float*)&m_Data[offset + sizeof(float) * 0] = value.x;
 		    *(float*)&m_Data[offset + sizeof(float) * 1] = value.y;
 		    *(float*)&m_Data[offset + sizeof(float) * 2] = value.z;
+		}
+
+		template <>
+		Math::Vec3<float> GetElement<Math::Vec3<float>>(const String& elementName, size_t elementIndex) const
+		{
+			if (!m_Elements.ContainsKey(elementName))
+				throw std::runtime_error("Invalid element name");
+
+			auto& element = m_Elements.Get(elementName);
+			if (element.m_Type != VertexStructureElement::Float3)
+				throw std::runtime_error("Invalid element type");
+
+			if (elementIndex >= element.m_Count)
+				throw std::runtime_error("Invalid element index");
+
+			size_t offset = element.m_Offset + elementIndex * sizeof(float) * 3;
+			return Math::Vec3<float>(
+				*(float*)&m_Data[offset + sizeof(float) * 0],
+				*(float*)&m_Data[offset + sizeof(float) * 1],
+				*(float*)&m_Data[offset + sizeof(float) * 2]
+			);
 		}
 
 		void SetElement(const String& elementName, Math::Vec4<float> value, size_t elementIndex = 0)
@@ -467,6 +528,28 @@ namespace NGN
 		    *(float*)&m_Data[offset + sizeof(float) * 3] = value.w;
 		}
 
+		template <>
+		Math::Vec4<float> GetElement<Math::Vec4<float>>(const String& elementName, size_t elementIndex) const
+		{
+			if (!m_Elements.ContainsKey(elementName))
+				throw std::runtime_error("Invalid element name");
+
+			auto& element = m_Elements.Get(elementName);
+			if (element.m_Type != VertexStructureElement::Float4)
+				throw std::runtime_error("Invalid element type");
+
+			if (elementIndex >= element.m_Count)
+				throw std::runtime_error("Invalid element index");
+
+			size_t offset = element.m_Offset + elementIndex * sizeof(float) * 4;
+			return Math::Vec4<float>(
+				*(float*)&m_Data[offset + sizeof(float) * 0],
+				*(float*)&m_Data[offset + sizeof(float) * 1],
+				*(float*)&m_Data[offset + sizeof(float) * 2],
+				*(float*)&m_Data[offset + sizeof(float) * 3]
+			);
+		}
+
 		void SetElement(const String& elementName, int value, size_t elementIndex = 0)
 		{
 			if (!m_Elements.ContainsKey(elementName))
@@ -481,6 +564,23 @@ namespace NGN
 
 			size_t offset = element.m_Offset + elementIndex * sizeof(int);
 			*(int*)&m_Data[offset] = value;
+		}
+
+		template <>
+		int GetElement<int>(const String& elementName, size_t elementIndex) const
+		{
+			if(!m_Elements.ContainsKey(elementName))
+				throw std::runtime_error("Invalid element name");
+
+			auto& element = m_Elements.Get(elementName);
+			if (element.m_Type != VertexStructureElement::Int)
+				throw std::runtime_error("Invalid element type");
+
+			if (elementIndex >= element.m_Count)
+				throw std::runtime_error("Invalid element index");
+
+			size_t offset = element.m_Offset + elementIndex * sizeof(int);
+			return *(int*)&m_Data[offset];
 		}
 
 		// TODO: Vec2<int>
@@ -500,6 +600,26 @@ namespace NGN
 		//     *(int*)&m_Data[offset + sizeof(int) * 0] = value.x;
 		//     *(int*)&m_Data[offset + sizeof(int) * 1] = value.y;
 		// }
+		//
+		// template <>
+		// Vec2<int> GetElement<Vec2<int>>(const String& elementName, size_t elementIndex) const
+		// {
+		//     if(!m_Elements.ContainsKey(elementName))
+		//         throw std::runtime_error("Invalid element name");
+		//
+		//     auto& element = m_Elements[elementName];
+		//     if (element.m_Type != VertexStructureElement::Int2)
+		//         throw std::runtime_error("Invalid element type");
+		//
+		//     if (elementIndex >= element.m_Count)
+		//         throw std::runtime_error("Invalid element index");
+		//
+		//     size_t offset = element.m_Offset + elementIndex * sizeof(int) * 2;
+		//     return Vec2<int>(
+		//         *(int*)&m_Data[offset + sizeof(int) * 0],
+		//         *(int*)&m_Data[offset + sizeof(int) * 1]
+		//     );
+		// }
 
 		void SetElement(const String& elementName, Math::Vec3<int> value, size_t elementIndex = 0)
 		{
@@ -517,6 +637,27 @@ namespace NGN
 		    *(int*)&m_Data[offset + sizeof(int) * 0] = value.x;
 		    *(int*)&m_Data[offset + sizeof(int) * 1] = value.y;
 		    *(int*)&m_Data[offset + sizeof(int) * 2] = value.z;
+		}
+
+		template <>
+		Math::Vec3<int> GetElement<Math::Vec3<int>>(const String& elementName, size_t elementIndex) const
+		{
+			if (!m_Elements.ContainsKey(elementName))
+				throw std::runtime_error("Invalid element name");
+
+			auto& element = m_Elements.Get(elementName);
+			if (element.m_Type != VertexStructureElement::Int3)
+				throw std::runtime_error("Invalid element type");
+
+			if (elementIndex >= element.m_Count)
+				throw std::runtime_error("Invalid element index");
+
+			size_t offset = element.m_Offset + elementIndex * sizeof(int) * 3;
+			return Math::Vec3<int>(
+				*(int*)&m_Data[offset + sizeof(int) * 0],
+				*(int*)&m_Data[offset + sizeof(int) * 1],
+				*(int*)&m_Data[offset + sizeof(int) * 2]
+			);
 		}
 
 		void SetElement(const String& elementName, Math::Vec4<int> value, size_t elementIndex = 0)
@@ -538,6 +679,28 @@ namespace NGN
 		    *(int*)&m_Data[offset + sizeof(int) * 3] = value.w;
 		}
 
+		template <>
+		Math::Vec4<int> GetElement<Math::Vec4<int>>(const String& elementName, size_t elementIndex) const
+		{
+			if(!m_Elements.ContainsKey(elementName))
+				throw std::runtime_error("Invalid element name");
+
+			auto& element = m_Elements.Get(elementName);
+			if (element.m_Type != VertexStructureElement::Int4)
+				throw std::runtime_error("Invalid element type");
+
+			if (elementIndex >= element.m_Count)
+				throw std::runtime_error("Invalid element index");
+
+			size_t offset = element.m_Offset + elementIndex * sizeof(int) * 4;
+			return Math::Vec4<int>(
+				*(int*)&m_Data[offset + sizeof(int) * 0],
+				*(int*)&m_Data[offset + sizeof(int) * 1],
+				*(int*)&m_Data[offset + sizeof(int) * 2],
+				*(int*)&m_Data[offset + sizeof(int) * 3]
+			);
+		}
+
 		void SetElement(const String& elementName, bool value, size_t elementIndex = 0)
 		{
 			if (!m_Elements.ContainsKey(elementName))
@@ -552,6 +715,23 @@ namespace NGN
 
 			size_t offset = element.m_Offset + elementIndex * sizeof(bool);
 			*(bool*)&m_Data[offset] = value;
+		}
+
+		template <>
+		bool GetElement<bool>(const String& elementName, size_t elementIndex) const
+		{
+			if (!m_Elements.ContainsKey(elementName))
+				throw std::runtime_error("Invalid element name");
+
+			auto& element = m_Elements.Get(elementName);
+			if (element.m_Type != VertexStructureElement::Bool)
+				throw std::runtime_error("Invalid element type");
+
+			if (elementIndex >= element.m_Count)
+				throw std::runtime_error("Invalid element index");
+
+			size_t offset = element.m_Offset + elementIndex * sizeof(bool);
+			return *(bool*)&m_Data[offset];
 		}
 
 		void SetElement(const String& elementName, Math::Mat4<float, Math::ROW_MAJOR> value, size_t elementIndex = 0)
@@ -570,6 +750,26 @@ namespace NGN
 			memcpy(&m_Data[offset], value.GetData(), sizeof(float) * 16);
 		}
 
+		template <>
+		Math::Mat4<float, Math::ROW_MAJOR> GetElement<Math::Mat4<float, Math::ROW_MAJOR>>(const String& elementName, size_t elementIndex) const
+		{
+			if (!m_Elements.ContainsKey(elementName))
+				throw std::runtime_error("Invalid element name");
+
+			auto& element = m_Elements.Get(elementName);
+			if (element.m_Type != VertexStructureElement::Mat4Row)
+				throw std::runtime_error("Invalid element type");
+
+			if (elementIndex >= element.m_Count)
+				throw std::runtime_error("Invalid element index");
+
+			size_t offset = element.m_Offset + elementIndex * sizeof(float) * 16;
+			Math::Mat4<float, Math::ROW_MAJOR> r = Math::Mat4<float, Math::ROW_MAJOR>::Zero();
+			memcpy(r[0], &m_Data[offset], sizeof(float) * 16);
+
+			return r;
+		}
+
 		void SetElement(const String& elementName, Math::Mat4<float, Math::COLUMN_MAJOR> value, size_t elementIndex = 0)
 		{
 			if (!m_Elements.ContainsKey(elementName))
@@ -584,6 +784,26 @@ namespace NGN
 
 			size_t offset = element.m_Offset + elementIndex * sizeof(float) * 16;
 			memcpy(&m_Data[offset], value.GetData(), sizeof(float) * 16);
+		}
+
+		template <>
+		Math::Mat4<float, Math::COLUMN_MAJOR> GetElement<Math::Mat4<float, Math::COLUMN_MAJOR>>(const String& elementName, size_t elementIndex) const
+		{
+			if (!m_Elements.ContainsKey(elementName))
+				throw std::runtime_error("Invalid element name");
+
+			auto& element = m_Elements.Get(elementName);
+			if (element.m_Type != VertexStructureElement::Mat4Column)
+				throw std::runtime_error("Invalid element type");
+
+			if (elementIndex >= element.m_Count)
+				throw std::runtime_error("Invalid element index");
+
+			size_t offset = element.m_Offset + elementIndex * sizeof(float) * 16;
+			Math::Mat4<float, Math::COLUMN_MAJOR> r = Math::Mat4<float, Math::COLUMN_MAJOR>::Zero();
+			memcpy(r[0], &m_Data[offset], sizeof(float) * 16);
+
+			return r;
 		}
 
 		InstanceBuffer GenerateCompatible(const BufferLayout& layout)
@@ -609,6 +829,8 @@ namespace NGN
 
 			return buffer;
 		}
+
+		InstanceBuffer Merge(const InstanceBuffer& other);
 
 		const List<uint8_t>& GetData() const { return m_Data; }
 

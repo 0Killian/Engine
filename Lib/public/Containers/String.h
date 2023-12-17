@@ -7,6 +7,7 @@
 
 #include "List.h"
 #include "Logger.h"
+#include <compare>
 
 namespace NGN
 {
@@ -198,15 +199,25 @@ namespace NGN
         [[nodiscard]] const char* GetData() const { return m_Data.c_str(); }
         [[nodiscard]] char* GetData() { return m_Data.data(); }
 
-        bool operator==(const String& other) const
+        std::strong_ordering operator<=>(const String& other) const
+		{
+			return m_Data <=> other.m_Data;
+		}
+
+        std::strong_ordering operator<=>(const char* other) const
         {
-            return m_Data == other.m_Data;
+            return m_Data <=> other;
         }
 
-        bool operator==(const char* other) const
-        {
-            return m_Data == other;
-        }
+        bool operator==(const String& other) const
+		{
+			return m_Data == other.m_Data;
+		}
+
+		bool operator==(const char* other) const
+		{
+			return m_Data == other;
+		}
 
         [[nodiscard]] bool StartsWith(const char* other) const
         {
@@ -214,11 +225,13 @@ namespace NGN
         }
 
         [[nodiscard]] size_t Size() const { return m_Data.size(); }
+        [[nodiscard]] size_t GetCapacity() const { return m_Data.capacity(); }
 
         String operator+(const String& other) const
         {
             String newString;
-            newString.m_Data = m_Data + other.m_Data;
+            newString.m_Data = m_Data;
+            newString.m_Data += other.m_Data;
             return newString;
         }
 

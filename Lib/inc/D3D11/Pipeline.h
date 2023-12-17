@@ -37,6 +37,7 @@ namespace NGN::D3D11
         void UpdateMesh(size_t meshId, String name, Mesh& mesh);
         uint32_t AddInstance(size_t meshId, InstanceBuffer buffer);
         void UpdateInstance(size_t meshId, size_t instanceId, InstanceBuffer buffer);
+        void RemoveInstance(size_t meshId, size_t instanceId);
         void UpdateConstantBuffer(InstanceBuffer buffer);
 
         void Render();

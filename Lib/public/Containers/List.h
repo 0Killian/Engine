@@ -51,6 +51,11 @@ namespace NGN
 			m_Data.resize(size);
 		}
 
+        void Insert(size_t index, const T& value)
+		{
+			m_Data.insert(m_Data.begin() + index, value);
+		}
+
         [[nodiscard]] size_t Size() const { return m_Data.size(); }
         [[nodiscard]] T* GetData() { return m_Data.data(); }
         [[nodiscard]] const T* GetData() const { return m_Data.data(); }

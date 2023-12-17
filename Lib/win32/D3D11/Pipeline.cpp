@@ -640,6 +640,7 @@ namespace NGN::D3D11
 
     uint32_t Pipeline::AddInstance(size_t meshId, InstanceBuffer buffer)
     {
+        Logger::Info() << "Adding instance to mesh " << meshId << Logger::EndLine;
         Renderer& renderer = static_cast<Renderer&>(Renderer::Get());
 
         if (!m_MeshReferences.ContainsKey(meshId))
@@ -651,16 +652,20 @@ namespace NGN::D3D11
 
         meshRef.InstanceCount++;
 
+        Logger::Info() << "There is now " << meshRef.InstanceCount << " instances" << Logger::EndLine;
         
         const InstanceReference reference = {
             .Index = meshRef.InstanceCount - 1,
             .Data = buffer.GenerateCompatible(*m_InstanceBufferLayout)
 		};
 
+        Logger::Info() << "Instance index is " << reference.Index << Logger::EndLine;
+
         meshRef.Instances.Insert(meshRef.NextInstanceID++, reference);
 
         if (meshRef.InstanceCount == 1)
         {
+            Logger::Info() << "This is the first instance" << Logger::EndLine;
             meshRef.FirstInstance = static_cast<uint32_t>(m_NextInstance);
         }
 
@@ -674,6 +679,8 @@ namespace NGN::D3D11
 			.StartInstanceLocation = meshRef.FirstInstance
 		};
 
+        Logger::Info() << "New command buffer: " << command.IndexCountPerInstance << " indices, " << command.InstanceCount << " instances, " << command.StartIndexLocation << " base index, " << command.BaseVertexLocation << " base vertex, " << command.StartInstanceLocation << " base instance" << Logger::EndLine;
+
         UpdateBufferWithStaging(
             renderer.GetDevice(),
             renderer.GetContext(),
@@ -684,6 +691,8 @@ namespace NGN::D3D11
 
         if(meshId == m_LastInstanceMeshId || meshRef.InstanceCount == 1)
         {
+            Logger::Info() << "Adding instance to the end of the buffer (offset: " << m_NextInstance * reference.Data.GetStride() << ")" << Logger::EndLine;
+
             // We can just append the new instance to the end of the buffer.
             UpdateBuffer(
                 renderer.GetDevice(),
@@ -697,17 +706,23 @@ namespace NGN::D3D11
         }
         else
         {
+            Logger::Info() << "Regenerating the instance buffer" << Logger::EndLine;
+
             m_NextInstance = 0;
             // We need to regenerate the instance buffer, and update the command buffer accordingly.
             for (auto& meshReference : std::ranges::views::values(m_MeshReferences))
             {
-                List<uint8_t> instances ;
+                Logger::Info() << "Mesh " << meshReference.Name << " has " << meshReference.InstanceCount << " instances" << Logger::EndLine;
+                List<uint8_t> instances;
                 instances.Resize(meshReference.InstanceCount * m_InstanceBufferLayout->GetStride());
 
+                size_t index = 0;
                 for (auto& instanceReference : std::ranges::views::values(meshReference.Instances))
 				{
+                    Logger::Info() << "Adding instance to offset " << (index) * instanceReference.Data.GetStride() << Logger::EndLine;
+                    instanceReference.Index = index;
 					memcpy(&instances[instanceReference.Index * instanceReference.Data.GetStride()], instanceReference.Data.GetData().GetData(), instanceReference.Data.GetStride());
-                    instanceReference.Index = instances.Size() - 1;
+					index++;
 				}
 
                 meshReference.FirstInstance = static_cast<uint32_t>(m_NextInstance);
@@ -727,6 +742,8 @@ namespace NGN::D3D11
 					.BaseVertexLocation = static_cast<INT>(meshReference.VertexOffset),
 					.StartInstanceLocation = meshReference.FirstInstance
 				};
+
+				Logger::Info() << "New command buffer: " << command.IndexCountPerInstance << " indices, " << command.InstanceCount << " instances, " << command.StartIndexLocation << " base index, " << command.BaseVertexLocation << " base vertex, " << command.StartInstanceLocation << " base instance" << Logger::EndLine;
 
 				UpdateBufferWithStaging(
 					renderer.GetDevice(),
@@ -762,13 +779,126 @@ namespace NGN::D3D11
 
 		mesh.Instances.Get(instanceId).Data = buffer.GenerateCompatible(*m_InstanceBufferLayout);
 
-		UpdateBufferWithStaging(
+        UpdateBuffer(
 			renderer.GetDevice(),
 			renderer.GetContext(),
 			m_InstanceBuffer,
-			(mesh.FirstInstance + mesh.Instances.Get(instanceId).Index) * m_InstanceBufferLayout->GetStride() ,
+			(mesh.FirstInstance + mesh.Instances.Get(instanceId).Index) * m_InstanceBufferLayout->GetStride(),
 			buffer.GetData().GetData(),
 			m_InstanceBufferLayout->GetStride());
+    }
+
+    void Pipeline::RemoveInstance(size_t meshId, size_t instanceId)
+    {
+        Logger::Info() << "Removing instance " << instanceId << " from mesh " << meshId << Logger::EndLine;
+
+        Renderer& renderer = static_cast<Renderer&>(Renderer::Get());
+
+        if (!m_MeshReferences.ContainsKey(meshId))
+        {
+			throw std::runtime_error("Mesh does not exist");
+		}
+
+        MeshReference& mesh = m_MeshReferences[meshId];
+
+        if (!mesh.Instances.ContainsKey(instanceId))
+        {
+            throw std::runtime_error("Instance does not exist");
+        }
+
+        mesh.InstanceCount--;
+
+        Logger::Info() << "There is now " << mesh.InstanceCount << " instances" << Logger::EndLine;
+
+        if (mesh.InstanceCount == 0)
+		{
+			Logger::Info() << "This was the last instance" << Logger::EndLine;
+			mesh.FirstInstance = 0;
+		}
+
+        size_t index = mesh.Instances.Get(instanceId).Index;
+
+        mesh.Instances.Erase(instanceId);
+
+        Logger::Info() << "Instance index was " << index << Logger::EndLine;
+
+        // If there is no more instances, we can ignore the data in the instance buffer.
+        if (mesh.InstanceCount != 0)
+        {
+            Logger::Info() << "There might be instances after the one we removed" << Logger::EndLine;
+
+            List<uint8_t> instances;
+
+            // We need to move back all the instances that are after the one we removed.
+            for (auto& instanceReference : std::ranges::views::values(mesh.Instances))
+            {
+                if (instanceReference.Index > index)
+                {
+                    Logger::Info() << "Moving instance " << instanceReference.Index << " to offset " << index * instanceReference.Data.GetStride() + instances.Size() << Logger::EndLine;
+
+                    instanceReference.Index = index + instances.Size() / m_InstanceBufferLayout->GetStride();
+                    instances.Resize(instances.Size() + instanceReference.Data.GetStride());
+                    memcpy(&instances[(instanceReference.Index - index) * m_InstanceBufferLayout->GetStride()], instanceReference.Data.GetData().GetData(), m_InstanceBufferLayout->GetStride());
+                }
+            }
+
+            if (instances.Size() != 0)
+            {
+                Logger::Info() << "Updating instance buffer from offset " << (mesh.FirstInstance + index) * m_InstanceBufferLayout->GetStride() << " to " << (mesh.FirstInstance + index) * m_InstanceBufferLayout->GetStride() + instances.Size() << Logger::EndLine;
+                // We need to update a part of the instance buffer.
+                UpdateBuffer(
+                    renderer.GetDevice(),
+                    renderer.GetContext(),
+                    m_InstanceBuffer,
+                    (mesh.FirstInstance + index) * m_InstanceBufferLayout->GetStride(),
+                    instances.GetData(),
+                    instances.Size());
+            }
+            else
+            {
+                Logger::Info() << "There were no instances after the one we removed" << Logger::EndLine;
+            }
+		}
+
+
+        // We need to update the command buffer.
+        NGN::Mesh& ngnMesh = ResourceManager::Get().GetMesh(mesh.Name);
+        D3D11_DRAW_INDEXED_INSTANCED_INDIRECT_ARGS command = {
+            .IndexCountPerInstance = static_cast<UINT>(ngnMesh.GetIndices().Size()),
+            .InstanceCount = mesh.InstanceCount,
+            .StartIndexLocation = mesh.IndexOffset,
+            .BaseVertexLocation = static_cast<INT>(mesh.VertexOffset),
+            .StartInstanceLocation = mesh.FirstInstance
+        };
+
+        Logger::Info() << "New command buffer: " << command.IndexCountPerInstance << " indices, " << command.InstanceCount << " instances, " << command.StartIndexLocation << " base index, " << command.BaseVertexLocation << " base vertex, " << command.StartInstanceLocation << " base instance" << Logger::EndLine;
+
+        UpdateBufferWithStaging(
+			renderer.GetDevice(),
+			renderer.GetContext(),
+			m_CommandBuffer,
+			mesh.CommandIndex * sizeof(D3D11_DRAW_INDEXED_INSTANCED_INDIRECT_ARGS),
+			&command,
+			sizeof(D3D11_DRAW_INDEXED_INSTANCED_INDIRECT_ARGS));
+
+        size_t maxFirstInstance = m_MeshReferences[meshId].FirstInstance;
+        size_t maxInstanceCount = m_MeshReferences[meshId].InstanceCount;
+        size_t maxInstanceMeshId = meshId;
+
+        for (const auto& [meshId, meshReference] : m_MeshReferences)
+        {
+            if (meshReference.FirstInstance > maxFirstInstance)
+            {
+				maxFirstInstance = meshReference.FirstInstance;
+                maxInstanceCount = meshReference.InstanceCount;
+                maxInstanceMeshId = meshId;
+			}
+		}
+
+        m_NextInstance = maxFirstInstance + maxInstanceCount;
+        m_LastInstanceMeshId = maxInstanceMeshId;
+
+        Logger::Info() << "There is now " << m_NextInstance << " instances in total" << Logger::EndLine;
     }
 
     void Pipeline::UpdateConstantBuffer(InstanceBuffer buffer)

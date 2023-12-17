@@ -18,6 +18,7 @@ namespace NGN
 		[[nodiscard]] V& Get(const K& key) { return m_Data.at(key); }
         void Erase(const K& key) { m_Data.erase(key); }
         void Insert(const K& key, const V& value) { m_Data.insert({key, value}); }
+        void Clear() { m_Data.clear(); }
 
         V& operator[](const K& key) { return m_Data[key]; }
 
