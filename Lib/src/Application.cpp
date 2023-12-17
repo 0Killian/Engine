@@ -41,6 +41,11 @@ namespace NGN
 
         Component::InitComponents();
 
+        m_RendererViewportX = 0;
+        m_RendererViewportY = 0;
+        m_RendererViewportWidth = static_cast<float>(m_Window.GetWidth());
+        m_RendererViewportHeight = static_cast<float>(m_Window.GetHeight());
+
         InitInner();
     }
 
@@ -50,12 +55,11 @@ namespace NGN
             .AddElement("MODEL", VertexStructureElement::Mat4Row, 1)
             .Build();
 
-
         NGN::Mesh& ngnMesh = ResourceManager::Get().GetMesh(mesh.MeshName);
 
         buffer.SetElement("MODEL", transform.GetMatrix());
 
-        ngnMesh.UpdateInstance(mesh.InstanceID, buffer);
+        ngnMesh.UpdateInstance(mesh.InstanceID, buffer.Merge(mesh.GetBuffer()));
 
         for (auto&& [child, transform, mesh] : Application::Get().GetRegistry().view<Component::Transform, Component::Mesh>().each())
         {
@@ -81,10 +85,16 @@ namespace NGN
                 m_ShouldExit = true;
             
             FrameData frameData = {
-                .constantBuffer = InstanceBufferBuilder()
+                .ConstantBuffer = InstanceBufferBuilder()
                     .AddElement("View", VertexStructureElement::Mat4Column, 1)
                     .AddElement("Projection", VertexStructureElement::Mat4Column, 1)
                     .Build(),
+                .Viewport = {
+                    .X = GetRenderer().GetRenderMode() == RenderMode::ToTexture ? 0 : m_RendererViewportX,
+					.Y = GetRenderer().GetRenderMode() == RenderMode::ToTexture ? 0 : m_RendererViewportY,
+					.Width = GetRenderer().GetRenderMode() == RenderMode::ToTexture ? static_cast<float>(m_Window.GetWidth()) : m_RendererViewportWidth,
+					.Height = GetRenderer().GetRenderMode() == RenderMode::ToTexture ? static_cast<float>(m_Window.GetHeight()) : m_RendererViewportHeight,
+				},
             };
 
             Math::Mat4<float, Math::COLUMN_MAJOR> view = Math::Mat4<float, Math::COLUMN_MAJOR>::LookAt(
@@ -95,13 +105,13 @@ namespace NGN
             
             Math::Mat4<float, Math::COLUMN_MAJOR> projection = Math::Mat4<float, Math::COLUMN_MAJOR>::Perspective(
                 90.0f,
-                1280.0f / 720.0f,
+                m_RendererViewportWidth / m_RendererViewportHeight,
                 0.1f,
                 100.0f
             );
 
-            frameData.constantBuffer.SetElement("View", view);
-            frameData.constantBuffer.SetElement("Projection", projection);
+            frameData.ConstantBuffer.SetElement("View", view);
+            frameData.ConstantBuffer.SetElement("Projection", projection);
 
             FramePacket packet = GetRenderer().StartFrame(frameData);
 
